@@ -17,5 +17,10 @@ export default defineConfig({
     url: "http://127.0.0.1:3004/",
     reuseExistingServer: !process.env.CI,
     timeout: 120000,
+    env: {
+      AUTH_SECRET:
+        process.env.AUTH_SECRET ??
+        "playwright-only-secret-not-for-production-2026",
+    },
   },
 });

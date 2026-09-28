@@ -64,30 +64,31 @@ enum AIEventKind {
 }
 
 model User {
-  id             String         @id @default(cuid())
-  email          String         @unique
-  name           String?
-  emailVerified  DateTime?
-  image          String?
-  passwordHash   String?
-  firstName      String         @default("")
-  lastName       String         @default("")
-  phone          String?
-  role           Role           @default(CLIENTE)
-  locale         String         @default("es") @db.VarChar(5)
-  timezone       String         @default("Europe/Berlin")
-  active         Boolean        @default(true)
-  sessionVersion Int            @default(0)
-  customer       Customer?
-  employee       Employee?
-  addresses      Address[]
-  orders         Order[]
-  notifications  Notification[]
-  aiAuditEvents  AIAuditEvent[]
-  accounts       Account[]
-  sessions       Session[]
-  createdAt      DateTime       @default(now())
-  updatedAt      DateTime       @updatedAt
+  id                  String               @id @default(cuid())
+  email               String               @unique
+  name                String?
+  emailVerified       DateTime?
+  image               String?
+  passwordHash        String?
+  firstName           String               @default("")
+  lastName            String               @default("")
+  phone               String?
+  role                Role                 @default(CLIENTE)
+  locale              String               @default("es") @db.VarChar(5)
+  timezone            String               @default("Europe/Berlin")
+  active              Boolean              @default(true)
+  sessionVersion      Int                  @default(0)
+  customer            Customer?
+  employee            Employee?
+  addresses           Address[]
+  orders              Order[]
+  notifications       Notification[]
+  aiAuditEvents       AIAuditEvent[]
+  accounts            Account[]
+  sessions            Session[]
+  passwordResetTokens PasswordResetToken[]
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
 
   @@index([role, active])
 }
@@ -127,6 +128,28 @@ model VerificationToken {
   expires    DateTime
 
   @@unique([identifier, token])
+}
+
+model PasswordResetToken {
+  id        String    @id @default(cuid())
+  tokenHash String    @unique
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([userId, expiresAt])
+}
+
+model AuthRateLimit {
+  key       String   @id
+  count     Int      @default(0)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([expiresAt])
 }
 
 model Customer {

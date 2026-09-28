@@ -66,3 +66,55 @@ test("portada se compone en dos columnas en desktop", async ({ page }) => {
     fullPage: true,
   });
 });
+
+test("un visitante se redirige al intentar abrir Mi cuenta", async ({
+  page,
+}) => {
+  await page.goto("/cuenta");
+  await expect(page).toHaveURL(/\/login$/);
+  await expect(page.getByLabel("Correo electrónico")).toBeVisible();
+});
+
+test("el idioma elegido también se usa al cambiar entre Registro y Login", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 320, height: 740 });
+  await page.goto("/register");
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.waitForTimeout(50);
+  await page.screenshot({
+    path: "/tmp/pancho-register-mobile.png",
+    fullPage: true,
+  });
+  await page.getByRole("button", { name: "DE", exact: true }).click();
+  await expect(page.getByLabel("Vorname")).toBeVisible();
+  await page.getByRole("link", { name: "Anmelden" }).click();
+  await expect(page.getByLabel("E-Mail-Adresse")).toBeVisible();
+  await expect(page.locator("html")).toHaveAttribute("lang", "de");
+  const documentWidth = await page
+    .locator("body")
+    .evaluate((body) => body.scrollWidth);
+  const viewportWidth = await page
+    .locator("body")
+    .evaluate((body) => body.clientWidth);
+  expect(documentWidth).toBeLessThanOrEqual(viewportWidth);
+});
+
+test("Login se presenta en panel dividido en desktop", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 960 });
+  await page.goto("/login");
+  await expect(
+    page.getByRole("heading", { name: "Qué bueno verte de nuevo." }),
+  ).toBeVisible();
+  await expect(page.getByText("BUEN SABOR, CERO COMPLICACIONES")).toBeVisible();
+  const columns = await page
+    .locator(".auth-layout")
+    .evaluate((layout) => getComputedStyle(layout).gridTemplateColumns);
+  expect(columns.split(" ").length).toBe(2);
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.waitForTimeout(50);
+  await page.screenshot({
+    path: "/tmp/pancho-login-desktop.png",
+    fullPage: true,
+  });
+});
