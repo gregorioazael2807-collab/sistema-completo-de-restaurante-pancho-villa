@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 420" role="img">
+  <rect width="640" height="420" rx="28" fill="#f2e6dc"/>
+  <circle cx="320" cy="210" r="153" fill="#fffaf1" stroke="#e5d7c4" stroke-width="8"/>
+  <circle cx="320" cy="210" r="129" fill="none" stroke="#e8ded0" stroke-width="2"/>
+  <path d="M171 246c20-111 101-159 171-157 82 2 137 67 137 157-91 71-217 78-308 0Z" fill="#d79443"/>
+  <path d="M191 233c30-60 68-72 103-55 34 17 55 24 88 3 33-21 65-14 81 36-21 28-55 39-90 22-35-17-57-11-91 13-37 26-70 11-91-19Z" fill="#396447"/>
+  <path d="M205 234c33-54 66-65 94-51 28 14 53 23 88 2 29-18 51-15 69 18-18 31-44 38-76 23-36-17-64-8-91 13-33 24-63 15-84-5Z" fill="#8d4b32"/>
+  <g fill="#edba4c"><circle cx="240" cy="207" r="10"/><circle cx="294" cy="193" r="8"/><circle cx="341" cy="217" r="10"/><circle cx="397" cy="191" r="8"/><circle cx="431" cy="218" r="7"/></g>
+  <g fill="#e76c48"><circle cx="268" cy="231" r="9"/><circle cx="370" cy="187" r="8"/><circle cx="416" cy="237" r="8"/></g>
+  <path d="M70 102l9 20 22 2-17 14 5 21-19-12-19 12 5-21-17-14 22-2z" fill="#c15b43" opacity=".7"/>
+  <path d="M548 296l7 16 18 2-14 11 4 17-15-9-15 9 4-17-14-11 18-2z" fill="#54764f" opacity=".65"/>
+</svg>

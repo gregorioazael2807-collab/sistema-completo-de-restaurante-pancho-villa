@@ -19,6 +19,7 @@ const labels = {
     email: "Correo electrónico",
     phone: "Teléfono (opcional)",
     password: "Contraseña",
+    forgot: "¿Olvidaste tu contraseña?",
     login: "Iniciar sesión",
     register: "Crear cuenta",
     noAccount: "¿Aún no tienes cuenta?",
@@ -47,6 +48,7 @@ const labels = {
     email: "Email address",
     phone: "Phone (optional)",
     password: "Password",
+    forgot: "Forgot your password?",
     login: "Sign in",
     register: "Create account",
     noAccount: "New to Pancho Villa?",
@@ -75,6 +77,7 @@ const labels = {
     email: "E-Mail-Adresse",
     phone: "Telefon (optional)",
     password: "Passwort",
+    forgot: "Passwort vergessen?",
     login: "Anmelden",
     register: "Konto erstellen",
     noAccount: "Noch kein Konto?",
@@ -313,6 +316,7 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
                 maxLength={254}
               />
             </label>
+            {!isRegister && <Link className="auth-forgot" href="/forgot-password">{text.forgot}</Link>}
             {isRegister && (
               <label>
                 {text.phone}

@@ -4,6 +4,6 @@ import { AuthForm } from "@/components/auth-form";
 
 export default async function LoginPage() {
   const session = await auth();
-  if (session?.user?.id) redirect("/cuenta");
+  if (session?.user?.id) redirect(session.user.role === "ADMIN" ? "/admin" : session.user.role === "COCINA" ? "/cocina" : "/cuenta");
   return <AuthForm mode="login" />;
 }

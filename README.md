@@ -1,22 +1,58 @@
 # Pancho Villa
 
-Aplicación full stack de restaurante mexicano: menú, venta online, pedidos, cocina/KDS, panel administrativo, IA y automatizaciones. Está desarrollada con Next.js, React, TypeScript, Tailwind, Auth.js, Zod, Prisma y PostgreSQL.
+Aplicación web de pedidos para un restaurante mexicano, creada como proyecto independiente; BookFlow no se modifica. Usa Next.js, React, TypeScript, Tailwind CSS, Auth.js, Zod, Prisma y PostgreSQL.
 
-## Fases implementadas
+## Implementado y comprobado
 
-- **Fase 1:** identidad inicial, portada responsive trilingüe, esquema PostgreSQL y primera migración.
-- **Fase 2:** alta cliente (siempre CLIENTE), login Auth.js, bcrypt, límites de intentos en PostgreSQL, sesión con rol y ruta privada de cuenta.
+- Portada mexicana responsive y catálogo público PostgreSQL con siete categorías, 21 productos, traducciones ES/EN/DE, fotos locales y opciones/extras.
+- Registro de clientes, login Auth.js, contraseñas bcrypt, rate limits en PostgreSQL, roles ADMIN/COCINA/EMPLEADO/CLIENTE, recuperación de contraseña con enlace de un uso e invalidación de sesiones anteriores.
+- Carrito local, recogida o entrega, validación de checkout Zod en servidor, precios/extras recalculados en transacción serializable, importes en céntimos, idempotencia, pago pendiente, outbox y seguimiento por identificador aleatorio.
+- Cocina protegida por rol con cambios persistentes, historial y actualización periódica; dashboard ADMIN con métricas, gestión administrativa de precio/disponibilidad/destacado de producto y vista de automatizaciones.
+- Asistente cliente conectado al menú y a los pedidos propios; solo propone productos, no ejecuta cargos/cancelaciones. El endpoint ADMIN de resumen obtiene métricas del backend y limita la interpretación de IA a esos datos.
+- Correos de pedido, cambios de estado y recuperación mediante Resend/outbox con deduplicación, reintentos escalonados y reintento manual. `vercel.json` agenda el worker cada minuto.
 
-BookFlow permanece separado en `/ruta/local/bookflow`.
+## Inicio local
 
-## Desarrollo local
+1. `npm install`
+2. Copia `config.example.txt` a `.env` y configura `DATABASE_URL`, `AUTH_SECRET` y `NEXTAUTH_URL`.
+3. `npx prisma validate`
+4. `npm run db:migrate`
+5. `npm run db:seed` (7 categorías, 21 productos y grupos de opciones)
+6. Define `ADMIN_EMAIL`, `ADMIN_PASSWORD`, `ADMIN_FIRST_NAME` y `ADMIN_LAST_NAME`; ejecuta `npm run db:bootstrap-admin` una vez y luego elimina esas variables del entorno.
+7. `npm run dev` y abre `http://localhost:3004`.
 
-1. Copia `config.example.txt` como `.env` y configura PostgreSQL.
-2. Ejecuta `npm install`.
-3. Ejecuta `npx prisma validate` y `npm run db:migrate`.
-4. Para crear el primer administrador, define las cuatro variables `ADMIN_*` del ejemplo y ejecuta `npm run db:bootstrap-admin`; elimina esos valores temporales después.
-5. Ejecuta `npm run dev` y abre `http://localhost:3004`.
+El test E2E de flujo real crea clientes y pedidos; apúntalo solo a una base desechable de prueba. Se omite automáticamente si no están definidos `DATABASE_URL`, `ADMIN_EMAIL` y `ADMIN_PASSWORD`.
 
-No introduzcas claves reales en Git. Los proveedores Resend, IA y pagos requieren configuración aparte; no se consideran activos por tener sus modelos preparados.
+## Servicios externos y límites actuales
 
-Consulta [docs/architecture.md](docs/architecture.md) para límites, flujo de pedido y fases.
+- **Correo:** configurar `RESEND_API_KEY`, un dominio verificado en Resend y `EMAIL_FROM` con remitente autorizado. La pantalla solo informa si las variables existen; eso no prueba que Resend acepte el dominio. Los pedidos sobreviven a fallos del correo y el worker reintenta hasta cinco veces.
+- **IA:** configurar `AI_API_KEY`, `AI_BASE_URL` (por ejemplo, `https://api.openai.com/v1`) y `AI_MODEL`. Sin ellas, catálogo, cuentas, pedidos y cocina siguen funcionando y el asistente explica que está sin configurar.
+- **PostgreSQL:** hace falta una instancia propia para persistencia local/de producción. El seed y la migración no se ejecutan automáticamente en Vercel.
+- **Pagos:** solo se crean pagos `PAYMENT_PENDING`; no hay proveedor integrado ni se procesan tarjetas. El checkout nunca pide PAN/CVV.
+- **Recordatorios previos al pedido:** pendientes; todavía no se puede elegir una hora futura de recogida/entrega. Cancelaciones de pedido desde el cliente, cupones/descuentos, catálogo CRUD completo, gestión de empleados/horarios, control geográfico del reparto y sincronización en tiempo real por push también quedan fuera de esta entrega. KDS consulta cada siete segundos.
+- **Estadísticas de ventas:** suman únicamente pagos marcados `PAID`. Como el proveedor de pagos no está integrado, los pedidos nuevos permanecen pendientes y no se cuentan como ventas cobradas.
+
+## Comprobaciones
+
+- `npm run typecheck`
+- `npm run lint`
+- `npm test`
+- `npx prisma validate` (requiere `DATABASE_URL`; basta una URL de PostgreSQL para validar el esquema)
+- `npm run build`
+- `npm run test:e2e` (ejecuta contra el build local; el caso con PostgreSQL requiere base desechable y credenciales ADMIN de prueba)
+
+## Rutas locales
+
+- `http://localhost:3004/` — portada
+- `http://localhost:3004/menu` — catálogo
+- `http://localhost:3004/carrito` — carrito y checkout
+- `http://localhost:3004/login` y `/register` — acceso y registro
+- `http://localhost:3004/cuenta` — pedidos y cuenta (autenticación requerida)
+- `http://localhost:3004/asistente` — SaborMX (autenticación requerida)
+- `http://localhost:3004/pedido/MX-...` — seguimiento de un pedido real
+- `http://localhost:3004/cocina` — KDS (ADMIN/COCINA)
+- `http://localhost:3004/admin` — dashboard (ADMIN)
+- `http://localhost:3004/admin/productos` — precio/disponibilidad (ADMIN)
+- `http://localhost:3004/admin/automatizaciones` — outbox y estado del correo (ADMIN)
+
+Consulta [docs/architecture.md](docs/architecture.md) para el diseño del esquema, seguridad y límites REST.

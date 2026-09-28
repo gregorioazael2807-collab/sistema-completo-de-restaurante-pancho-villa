@@ -1,6 +1,16 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import "./auth.css";
+import "./catalog.css";
+import "./checkout.css";
+import "./kitchen.css";
+import "./admin.css";
+import "./assistant.css";
+import "./recovery.css";
+import "./account.css";
+import "./automation.css";
+import "./products.css";
+import { CartProvider } from "@/components/cart-provider";
 
 export const metadata: Metadata = {
   title: "Pancho Villa — Sabor mexicano, hecho para compartir",
@@ -13,7 +23,7 @@ export default function RootLayout({
 }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="es">
-      <body>{children}</body>
+      <body><CartProvider>{children}</CartProvider></body>
     </html>
   );
 }

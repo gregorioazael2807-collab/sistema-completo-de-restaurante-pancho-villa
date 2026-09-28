@@ -1,37 +1,31 @@
-# Arquitectura inicial
+# Arquitectura de Pancho Villa
 
-Pancho Villa será una aplicación única Next.js con App Router. Las páginas públicas sirven el menú y la experiencia de compra; los Route Handlers REST validan entradas con Zod y autorizan cada operación con Auth.js en servidor. Prisma/PostgreSQL será la fuente de verdad para menú, precios, disponibilidad, pedidos, estados, pagos y métricas.
+Pancho Villa es una aplicación independiente sobre Next.js App Router. Las páginas públicas presentan el menú y el flujo de compra; Route Handlers REST validan entradas con Zod y autentican/autorizan en el servidor con Auth.js. PostgreSQL vía Prisma es la fuente de verdad para catálogo, precios, pedidos, historial, pagos, métricas y automatizaciones.
 
 ## Límites de confianza
 
-- El cliente nunca determina el precio final: el servidor vuelve a consultar precios, extras, impuestos y entrega en PostgreSQL.
-- La cocina solo avanza comandas permitidas; ADMIN gestiona catálogo, ajustes y métricas; CLIENTE ve únicamente sus pedidos y el seguimiento público limitado usa un identificador no secuencial.
-- La IA recibe el menú y métricas consultados desde la base. Propone productos y explica cifras, pero las acciones de pedido requieren una confirmación humana y validación normal del servidor.
-- No se guardan datos de tarjeta. El estado del pago y cualquier referencia tokenizada del proveedor se separan del pedido.
+- El navegador nunca decide el precio final: el servidor vuelve a cargar precios, extras, impuestos y tarifas desde PostgreSQL dentro de una transacción serializable.
+- COCINA y ADMIN acceden al KDS; solo ADMIN puede cambiar productos, ver métricas administrativas o gestionar el outbox. CLIENTE solo consulta sus propios pedidos; el seguimiento público por identificador aleatorio expone estado y artículos sin datos personales.
+- El asistente consulta catálogo y pedidos autorizados. Solo propone cambios/carrito; no confirma pedidos, cancela ni cobra. Las alergias reciben una advertencia basada en los datos registrados y la instrucción de confirmar con el restaurante.
+- No se almacena información de tarjeta. Los pedidos nuevos quedan con pago `PAYMENT_PENDING` hasta integrar un proveedor.
+- Un alta siempre crea CLIENTE. Las tareas administrativas de correo requieren rol ADMIN también en la API.
 
-## Flujo de pedido y fiabilidad
+## Pedido, idempotencia y notificaciones
 
-Una transacción crea Order, OrderItem, estado inicial, Payment y trabajos de notificación. La clave idempotente evita duplicar pedidos. Un trabajador reclama AutomationJob con bloqueo y reintenta fallos; las claves dedupe evitan duplicar correo/comandas. Un proveedor externo caído no revierte un pedido persistido.
+Una transacción crea Order, OrderItem, historial inicial, Payment y trabajos de notificación. Una clave idempotente evita duplicar el pedido. AutomationJob/Notification implementan el outbox y deduplicación; el worker procesa con reintentos y Resend puede rechazar envíos sin deshacer pedidos ya guardados. El KDS actualiza estados en PostgreSQL y consulta cambios periódicamente.
 
-## Esquema inicial
+## Migraciones y datos demo
 
-`prisma/schema.prisma` define usuarios y roles, catálogo localizado, modificadores, direcciones, pedido y snapshots de precio, historial, pago, notificación con deduplicación, cola de automatizaciones, auditoría IA y configuración del restaurante. Las fotografías son assets locales gestionados por el proyecto; nunca URLs aleatorias.
+`prisma/migrations/0001_initial` contiene el esquema base versionado; `0002_postgres_order_features` incorpora las entidades de recuperación/rate-limit y las ampliaciones posteriores. No modificar migraciones ya publicadas: crear una migración siguiente. `npm run db:seed` carga siete categorías, 21 productos localizados y dos grupos de opciones.
 
-## Fases
+Las imágenes demo son assets locales optimizados en `public/menu/`, generados para este proyecto y documentados en `public/menu/README.md`; no se descargan de URLs remotas al ejecutar la app.
 
-1. Arquitectura, identidad y modelo relacional (actual).
-2. Auth.js, alta, sesión y autorización por rol.
-3. Menú PostgreSQL, traducciones, categorías e imágenes locales.
-4. Carrito y cálculo seguro de extras/totales.
-5. Checkout idempotente, pedido, pago pendiente y seguimiento.
-6. KDS de cocina con transición de estados.
-7. Administración e informes PostgreSQL.
-8. Asistente conversacional con respuestas estructuradas y aprobación explícita.
-9. Outbox/jobs, Resend y reintentos idempotentes.
-10. Ajuste visual, fotografía y accesibilidad móvil.
-11. Vitest + Playwright en flujos y permisos.
-12. Variables, migraciones y lista de despliegue Vercel.
+## Estado de entrega
 
-## Configuración externa
+- Disponible y verificado: portada/menú multilingüe, registro/login/recuperación, carrito/checkout, pedido/seguimiento, cocina, panel ADMIN con métricas, mantenimiento limitado del catálogo, automatizaciones/outbox e interfaz del asistente.
+- Faltan para producción: proveedor de pagos, credenciales y dominio verificado de Resend, proveedor/API key de IA, política operativa real para entregas e integración de recordatorios con horarios futuros. También falta ampliar el CRUD del catálogo, empleados/horarios y completar la batería de responsive/end-to-end para todos los roles y tamaños.
+- El KDS usa polling cada siete segundos; todavía no usa WebSockets ni push.
 
-Solo `config.example.txt` se incluye en Git. Para ejecutar contra datos reales hacen falta PostgreSQL, `AUTH_SECRET`; para correo, `RESEND_API_KEY` y un remitente/dominio validado; para IA, la clave, URL compatible y nombre de modelo del proveedor elegido; y para cron, `CRON_SECRET`. Los pagos reales quedan desacoplados y requerirán credenciales del proveedor antes de activarse.
+## Variables externas
+
+Solo `config.example.txt` se incluye en Git. Se necesita PostgreSQL y `AUTH_SECRET` para la app. Para correo: `RESEND_API_KEY`, `EMAIL_FROM` y dominio validado. Para IA: `AI_API_KEY`, `AI_BASE_URL` y `AI_MODEL`. El worker cron de Vercel requiere `CRON_SECRET`. Los pagos permanecen pendientes hasta configurar un proveedor; no se capturan PAN ni CVV.

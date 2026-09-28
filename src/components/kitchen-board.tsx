@@ -1,0 +1,31 @@
+"use client";
+
+import { useCallback, useEffect, useState } from "react";
+import Link from "next/link";
+import { Check, ChefHat, Clock3, Flame, LoaderCircle, Play, RefreshCw } from "lucide-react";
+import type { Locale } from "@/lib/locale";
+import "../app/kitchen.css";
+
+type Status = "NUEVO" | "CONFIRMADO" | "EN_PREPARACION" | "LISTO";
+type KitchenOrder = { publicId: string; type: "PICKUP" | "DELIVERY"; status: Status; createdAt: string; notes: string | null; items: { productName: string; quantity: number; instructions: string | null; modifiers: { modifierName: string }[] }[] };
+const columns: Status[] = ["NUEVO", "EN_PREPARACION", "LISTO"];
+const messages = {
+  es: { title: "Comandas de cocina", subtitle: "Pedidos activos · actualización automática", new: "NUEVOS", cooking: "EN PREPARACIÓN", ready: "LISTOS", pickup: "Recoger", delivery: "Entrega", accept: "Aceptar", start: "Empezar", finish: "Listo", loading: "Cargando comandas…", fail: "No se pudieron cargar las comandas.", elapsed: "min", empty: "Sin pedidos en esta columna", order: "Pedido" },
+  en: { title: "Kitchen orders", subtitle: "Active orders · updates automatically", new: "NEW", cooking: "PREPARING", ready: "READY", pickup: "Pickup", delivery: "Delivery", accept: "Accept", start: "Start", finish: "Ready", loading: "Loading orders…", fail: "Could not load kitchen orders.", elapsed: "min", empty: "No orders in this column", order: "Order" },
+  de: { title: "Küchenbestellungen", subtitle: "Aktive Bestellungen · automatische Aktualisierung", new: "NEU", cooking: "IN ZUBEREITUNG", ready: "FERTIG", pickup: "Abholung", delivery: "Lieferung", accept: "Annehmen", start: "Starten", finish: "Fertig", loading: "Bestellungen werden geladen…", fail: "Küchenbestellungen konnten nicht geladen werden.", elapsed: "Min.", empty: "Keine Bestellungen in dieser Spalte", order: "Bestellung" },
+} satisfies Record<Locale, Record<string, string>>;
+
+export function KitchenBoard({ locale }: { locale: Locale }) {
+  const t = messages[locale];
+  const [orders, setOrders] = useState<KitchenOrder[]>([]);
+  const [failed, setFailed] = useState(false);
+  const [busy, setBusy] = useState<string | null>(null);
+  const [minute, setMinute] = useState(Date.now());
+  const load = useCallback(async () => {
+    try { const response = await fetch("/api/kitchen/orders", { cache: "no-store" }); if (!response.ok) throw new Error(); const data = await response.json() as { orders: KitchenOrder[] }; setOrders(data.orders); setFailed(false); } catch { setFailed(true); }
+  }, []);
+  useEffect(() => { void load(); const poll = window.setInterval(() => void load(), 7000); const tick = window.setInterval(() => setMinute(Date.now()), 30000); return () => { window.clearInterval(poll); window.clearInterval(tick); }; }, [load]);
+  async function update(order: KitchenOrder, status: string) { setBusy(order.publicId); try { const response = await fetch(`/api/orders/${order.publicId}`, { method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify({ status }) }); if (!response.ok) throw new Error(); await load(); } catch { setFailed(true); } finally { setBusy(null); } }
+  const displayStatus = (order: KitchenOrder) => order.status === "CONFIRMADO" ? "EN_PREPARACION" : order.status;
+  return <main className="kitchen-page"><header className="kitchen-header"><div><Link href="/" className="kitchen-brand"><span className="brand-mark"><Flame size={18} /></span>PANCHO VILLA</Link><h1>{t.title}</h1><p>{t.subtitle}</p></div><button className="kitchen-refresh" type="button" onClick={() => void load()} aria-label="Refresh"><RefreshCw size={18} /></button></header>{failed && <p className="kitchen-alert" role="alert">{t.fail} <button type="button" onClick={() => void load()}>{t.loading}</button></p>}<div className="kitchen-columns">{columns.map((status) => { const filtered = orders.filter((order) => displayStatus(order) === status); return <section className={`kitchen-column kitchen-${status.toLowerCase()}`} key={status}><header><h2>{t[status === "NUEVO" ? "new" : status === "EN_PREPARACION" ? "cooking" : "ready"]}</h2><span>{filtered.length}</span></header>{filtered.length === 0 && <p className="kitchen-empty">{t.empty}</p>}{filtered.map((order) => { const elapsed = Math.max(0, Math.floor((minute - new Date(order.createdAt).getTime()) / 60000)); const next = order.status === "NUEVO" ? "CONFIRMADO" : order.status === "CONFIRMADO" ? "EN_PREPARACION" : "LISTO"; const action = order.status === "NUEVO" ? t.accept : order.status === "CONFIRMADO" ? t.start : t.finish; return <article className={`kitchen-order ${elapsed >= 20 ? "overdue" : ""}`} key={order.publicId}><div className="kitchen-ticket-head"><strong>{order.publicId}</strong><span className="kitchen-time"><Clock3 size={14} />{elapsed} {t.elapsed}</span></div><p className="kitchen-type">{order.type === "PICKUP" ? t.pickup : t.delivery}</p><ul>{order.items.map((item, i) => <li key={`${item.productName}-${i}`}><strong>{item.quantity}×</strong><div><b>{item.productName}</b>{item.modifiers.map((mod, mi) => <small key={mi}>+ {mod.modifierName}</small>)}{item.instructions && <small className="kitchen-instruction">{item.instructions}</small>}</div></li>)}</ul>{order.notes && <p className="kitchen-note">{order.notes}</p>}<button className="kitchen-action" type="button" disabled={busy === order.publicId} onClick={() => void update(order, next)}>{busy === order.publicId ? <LoaderCircle className="spin-icon" size={16} /> : order.status === "NUEVO" ? <Check size={16} /> : order.status === "LISTO" ? <Check size={16} /> : <Play size={15} />}{action}</button>{elapsed >= 20 && <p className="kitchen-wait-alert" role="status"><ChefHat size={13} />{elapsed} {t.elapsed}</p>}</article>; })}</section>; })}</div></main>;
+}
