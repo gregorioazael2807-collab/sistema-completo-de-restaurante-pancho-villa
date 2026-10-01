@@ -217,6 +217,7 @@ model Product {
   image          ProductImage?
   translations   ProductTranslation[]
   modifierGroups ProductModifierGroup[]
+  recipe         Recipe?
   orderItems     OrderItem[]
   createdAt      DateTime               @default(now())
   updatedAt      DateTime               @updatedAt
@@ -293,6 +294,7 @@ model Modifier {
   name           String
   priceDelta     Decimal               @default(0) @db.Decimal(10, 2)
   available      Boolean               @default(true)
+  recipe         Recipe?
   orderModifiers OrderItemModifier[]
   translations   ModifierTranslation[]
   createdAt      DateTime              @default(now())
@@ -342,45 +344,61 @@ model Address {
 }
 
 model Order {
-  id                  String               @id @default(cuid())
-  publicId            String               @unique
-  idempotencyKey      String?              @unique
-  userId              String?
-  user                User?                @relation(fields: [userId], references: [id], onDelete: SetNull)
-  customerId          String?
-  customer            Customer?            @relation(fields: [customerId], references: [id], onDelete: SetNull)
-  addressId           String?
-  address             Address?             @relation(fields: [addressId], references: [id], onDelete: SetNull)
-  type                OrderType
-  status              OrderStatus          @default(NUEVO)
-  customerName        String
-  customerEmail       String
-  customerPhone       String
-  customerLocale      String               @default("es") @db.VarChar(5)
-  deliveryRecipient   String?
-  deliveryLine1       String?
-  deliveryLine2       String?
-  deliveryCity        String?
-  deliveryPostalCode  String?
-  deliveryCountryCode String?              @db.Char(2)
-  deliveryNote        String?              @db.Text
-  currency            String               @default("EUR") @db.Char(3)
-  subtotal            Decimal              @db.Decimal(10, 2)
-  taxRate             Decimal              @default(0) @db.Decimal(5, 4)
-  taxAmount           Decimal              @db.Decimal(10, 2)
-  deliveryFee         Decimal              @default(0) @db.Decimal(10, 2)
-  discountAmount      Decimal              @default(0) @db.Decimal(10, 2)
-  total               Decimal              @db.Decimal(10, 2)
-  notes               String?              @db.Text
-  estimatedReadyAt    DateTime?
-  items               OrderItem[]
-  statusHistory       OrderStatusHistory[]
-  payment             Payment?
-  notifications       Notification[]
-  automationJobs      AutomationJob[]
-  customerNotices     CustomerNotice[]
-  createdAt           DateTime             @default(now())
-  updatedAt           DateTime             @updatedAt
+  id                    String               @id @default(cuid())
+  publicId              String               @unique
+  idempotencyKey        String?              @unique
+  userId                String?
+  user                  User?                @relation(fields: [userId], references: [id], onDelete: SetNull)
+  customerId            String?
+  customer              Customer?            @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  addressId             String?
+  address               Address?             @relation(fields: [addressId], references: [id], onDelete: SetNull)
+  type                  OrderType
+  status                OrderStatus          @default(NUEVO)
+  customerName          String
+  customerEmail         String
+  customerPhone         String
+  customerLocale        String               @default("es") @db.VarChar(5)
+  deliveryRecipient     String?
+  deliveryLine1         String?
+  deliveryLine2         String?
+  deliveryCity          String?
+  deliveryPostalCode    String?
+  deliveryCountryCode   String?              @db.Char(2)
+  deliveryNote          String?              @db.Text
+  currency              String               @default("EUR") @db.Char(3)
+  subtotal              Decimal              @db.Decimal(10, 2)
+  taxRate               Decimal              @default(0) @db.Decimal(5, 4)
+  taxAmount             Decimal              @db.Decimal(10, 2)
+  deliveryFee           Decimal              @default(0) @db.Decimal(10, 2)
+  discountAmount        Decimal              @default(0) @db.Decimal(10, 2)
+  total                 Decimal              @db.Decimal(10, 2)
+  notes                 String?              @db.Text
+  estimatedReadyAt      DateTime?
+  estimatedReadyUntil   DateTime?
+  estimatedArrivalAt    DateTime?
+  estimatedArrivalUntil DateTime?
+  preparationDeadlineAt DateTime?
+  preparationStartedAt  DateTime?
+  readyAt               DateTime?
+  dispatchedAt          DateTime?
+  deliveredAt           DateTime?
+  shiftId               String?
+  shift                 KitchenShift?        @relation(fields: [shiftId], references: [id], onDelete: Restrict)
+  inventoryComplete     Boolean              @default(false)
+  ingredientCostCents   Int?
+  reservations          StockReservation[]
+  actions               OrderAction[]
+  deliveryQuoteId       String?              @unique
+  deliveryQuote         DeliveryQuote?       @relation(fields: [deliveryQuoteId], references: [id], onDelete: Restrict)
+  items                 OrderItem[]
+  statusHistory         OrderStatusHistory[]
+  payment               Payment?
+  notifications         Notification[]
+  automationJobs        AutomationJob[]
+  customerNotices       CustomerNotice[]
+  createdAt             DateTime             @default(now())
+  updatedAt             DateTime             @updatedAt
 
   @@index([status, createdAt])
   @@index([userId, createdAt])
@@ -389,19 +407,33 @@ model Order {
 }
 
 model OrderItem {
-  id           String              @id @default(cuid())
-  orderId      String
-  order        Order               @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  productId    String?
-  product      Product?            @relation(fields: [productId], references: [id], onDelete: SetNull)
-  productName  String
-  quantity     Int
-  unitPrice    Decimal             @db.Decimal(10, 2)
-  lineTotal    Decimal             @db.Decimal(10, 2)
-  instructions String?             @db.Text
-  modifiers    OrderItemModifier[]
-  createdAt    DateTime            @default(now())
-  updatedAt    DateTime            @updatedAt
+  id                  String              @id @default(cuid())
+  orderId             String
+  order               Order               @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  productId           String?
+  product             Product?            @relation(fields: [productId], references: [id], onDelete: SetNull)
+  productName         String
+  quantity            Int
+  unitPrice           Decimal             @db.Decimal(10, 2)
+  lineTotal           Decimal             @db.Decimal(10, 2)
+  instructions        String?             @db.Text
+  allergens           String[]            @default([])
+  allergensRecorded   Boolean             @default(false)
+  recipeSnapshot      Json?
+  stationId           String?
+  stationName         String?
+  prepMinutes         Int?
+  prepMaxMinutes      Int?
+  cookStatus          String              @default("PENDING")
+  assignedTo          String?
+  startedAt           DateTime?
+  finishedAt          DateTime?
+  estimatedAt         DateTime?
+  estimatedUntil      DateTime?
+  ingredientCostCents Int?
+  modifiers           OrderItemModifier[]
+  createdAt           DateTime            @default(now())
+  updatedAt           DateTime            @updatedAt
 
   @@index([orderId])
   @@index([productId])
@@ -445,6 +477,9 @@ model Payment {
   idempotencyKey String?         @unique
   paidAt         DateTime?
   refundedAt     DateTime?
+  method         String?
+  refundedAmount Decimal         @default(0) @db.Decimal(10, 2)
+  entries        PaymentEntry[]
   createdAt      DateTime        @default(now())
   updatedAt      DateTime        @updatedAt
 
@@ -507,18 +542,24 @@ model AIAuditEvent {
 }
 
 model RestaurantSettings {
-  id                   String   @id @default(cuid())
-  name                 String   @default("Pancho Villa")
-  timezone             String   @default("Europe/Berlin")
-  currency             String   @default("EUR") @db.Char(3)
-  taxRate              Decimal  @default(0) @db.Decimal(5, 4)
-  deliveryFee          Decimal  @default(0) @db.Decimal(10, 2)
-  minDeliveryAmount    Decimal  @default(0) @db.Decimal(10, 2)
-  pickupEnabled        Boolean  @default(true)
-  deliveryEnabled      Boolean  @default(true)
-  acceptingOrders      Boolean  @default(true)
-  estimatedPrepMinutes Int      @default(25)
-  updatedAt            DateTime @updatedAt
+  id                   String         @id @default(cuid())
+  name                 String         @default("Pancho Villa")
+  timezone             String         @default("Europe/Berlin")
+  currency             String         @default("EUR") @db.Char(3)
+  taxRate              Decimal        @default(0) @db.Decimal(5, 4)
+  deliveryFee          Decimal        @default(0) @db.Decimal(10, 2)
+  minDeliveryAmount    Decimal        @default(0) @db.Decimal(10, 2)
+  pickupEnabled        Boolean        @default(true)
+  deliveryEnabled      Boolean        @default(true)
+  acceptingOrders      Boolean        @default(true)
+  estimatedPrepMinutes Int            @default(25)
+  latitude             Decimal?       @db.Decimal(10, 7)
+  longitude            Decimal?       @db.Decimal(10, 7)
+  dispatchMinMinutes   Int?
+  dispatchMaxMinutes   Int?
+  shifts               KitchenShift[]
+  serviceMode          String         @default("LEGACY")
+  updatedAt            DateTime       @updatedAt
 }
 
 model AssistantMessage {
@@ -548,4 +589,185 @@ model CustomerNotice {
 
   @@unique([userId, eventKey])
   @@index([userId, readAt, createdAt])
+}
+
+model KitchenStation {
+  id       String   @id @default(cuid())
+  name     String   @unique
+  capacity Int      @default(1)
+  active   Boolean  @default(true)
+  recipes  Recipe[]
+}
+
+model Recipe {
+  id          String             @id @default(cuid())
+  productId   String?            @unique
+  product     Product?           @relation(fields: [productId], references: [id], onDelete: Restrict)
+  modifierId  String?            @unique
+  modifier    Modifier?          @relation(fields: [modifierId], references: [id], onDelete: Restrict)
+  stationId   String
+  station     KitchenStation     @relation(fields: [stationId], references: [id], onDelete: Restrict)
+  minMinutes  Int
+  maxMinutes  Int
+  ingredients RecipeIngredient[]
+  updatedAt   DateTime           @updatedAt
+}
+
+model Ingredient {
+  id            String              @id @default(cuid())
+  name          String              @unique
+  unit          String
+  stock         Decimal             @default(0) @db.Decimal(14, 3)
+  reserved      Decimal             @default(0) @db.Decimal(14, 3)
+  minimum       Decimal             @default(0) @db.Decimal(14, 3)
+  unitCostCents Decimal             @default(0) @db.Decimal(14, 6)
+  recipeLines   RecipeIngredient[]
+  reservations  StockReservation[]
+  movements     InventoryMovement[]
+  updatedAt     DateTime            @updatedAt
+}
+
+model RecipeIngredient {
+  recipeId     String
+  recipe       Recipe     @relation(fields: [recipeId], references: [id], onDelete: Cascade)
+  ingredientId String
+  ingredient   Ingredient @relation(fields: [ingredientId], references: [id], onDelete: Restrict)
+  quantity     Decimal    @db.Decimal(14, 3)
+
+  @@id([recipeId, ingredientId])
+}
+
+model StockReservation {
+  id           String     @id @default(cuid())
+  orderId      String
+  order        Order      @relation(fields: [orderId], references: [id], onDelete: Restrict)
+  ingredientId String
+  ingredient   Ingredient @relation(fields: [ingredientId], references: [id], onDelete: Restrict)
+  quantity     Decimal    @db.Decimal(14, 3)
+  state        String     @default("RESERVED")
+  costCents    Int
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  @@unique([orderId, ingredientId])
+}
+
+model InventoryMovement {
+  id            String     @id @default(cuid())
+  key           String     @unique
+  ingredientId  String
+  ingredient    Ingredient @relation(fields: [ingredientId], references: [id], onDelete: Restrict)
+  quantity      Decimal    @db.Decimal(14, 3)
+  kind          String
+  actorId       String
+  orderId       String?
+  note          String
+  unitCostCents Decimal?   @db.Decimal(14, 6)
+  createdAt     DateTime   @default(now())
+}
+
+model KitchenShift {
+  id                String             @id @default(cuid())
+  settingsId        String
+  settings          RestaurantSettings @relation(fields: [settingsId], references: [id], onDelete: Restrict)
+  activeKey         String?            @unique
+  openedAt          DateTime           @default(now())
+  closedAt          DateTime?
+  openedBy          String
+  closedBy          String?
+  openingCashCents  Int                @default(0)
+  countedCashCents  Int?
+  expectedCashCents Int?
+  differenceCents   Int?
+  summary           Json?
+  pauses            ShiftPause[]
+  orders            Order[]
+
+  @@index([closedAt, openedAt])
+}
+
+model ShiftPause {
+  id        String       @id @default(cuid())
+  shiftId   String
+  shift     KitchenShift @relation(fields: [shiftId], references: [id], onDelete: Restrict)
+  startedAt DateTime     @default(now())
+  endedAt   DateTime?
+  actorId   String
+}
+
+model KitchenEvent {
+  id        String   @id @default(cuid())
+  key       String   @unique
+  kind      String
+  publicId  String?
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+}
+
+model OrderAction {
+  id        String   @id @default(cuid())
+  key       String   @unique
+  orderId   String
+  order     Order    @relation(fields: [orderId], references: [id], onDelete: Restrict)
+  actorId   String
+  kind      String
+  payload   Json
+  createdAt DateTime @default(now())
+}
+
+model PaymentEntry {
+  id        String   @id @default(cuid())
+  key       String   @unique
+  paymentId String
+  payment   Payment  @relation(fields: [paymentId], references: [id], onDelete: Restrict)
+  kind      String
+  method    String
+  amount    Decimal  @db.Decimal(10, 2)
+  actorId   String
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+}
+
+model DeliveryQuote {
+  id          String   @id @default(cuid())
+  addressHash String
+  latitude    Decimal  @db.Decimal(10, 7)
+  longitude   Decimal  @db.Decimal(10, 7)
+  straightKm  Decimal  @db.Decimal(10, 4)
+  band        Int
+  routeMeters Int?
+  minSeconds  Int?
+  maxSeconds  Int?
+  method      String
+  mode        String
+  expiresAt   DateTime
+  createdAt   DateTime @default(now())
+  order       Order?
+}
+
+model RouteReference {
+  id          String   @id @default(cuid())
+  band        Int
+  minSeconds  Int
+  maxSeconds  Int
+  routeMeters Int?
+  method      String
+  mode        String
+  orderId     String?  @unique
+  createdAt   DateTime @default(now())
+
+  @@index([band, createdAt])
+}
+
+model PushSubscription {
+  id        String   @id @default(cuid())
+  userId    String
+  endpoint  String   @unique
+  p256dh    String
+  auth      String
+  createdAt DateTime @default(now())
+
+  @@index([userId])
 }

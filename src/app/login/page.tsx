@@ -1,9 +1,16 @@
 import { redirect } from "next/navigation";
-import { auth } from "@/auth";
+import { getActor } from "@/lib/access";
 import { AuthForm } from "@/components/auth-form";
 
 export default async function LoginPage() {
-  const session = await auth();
-  if (session?.user?.id) redirect(session.user.role === "ADMIN" ? "/admin" : session.user.role === "COCINA" ? "/cocina" : "/cuenta");
+  const actor = await getActor();
+  if (actor)
+    redirect(
+      actor.role === "ADMIN"
+        ? "/admin"
+        : actor.role === "COCINA"
+          ? "/cocina"
+          : "/cuenta",
+    );
   return <AuthForm mode="login" />;
 }

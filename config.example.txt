@@ -11,3 +11,17 @@ ADMIN_EMAIL=""
 ADMIN_PASSWORD=""
 ADMIN_FIRST_NAME=""
 ADMIN_LAST_NAME=""
+
+# Optional isolated preview; leave unset for the existing application's cookie.
+AUTH_COOKIE_NAME=""
+# Approved HTTPS routing adapter. No provider is purchased or invoked unless configured.
+DELIVERY_ROUTING_ENDPOINT=""
+DELIVERY_ROUTING_KEY=""
+# Authorized Rive resource and compatible local Canvas runtime/WASM.
+NEXT_PUBLIC_MARIACHI_RIVE=""
+NEXT_PUBLIC_RIVE_RUNTIME_PATH="/vendor/rive.js"
+NEXT_PUBLIC_RIVE_WASM_PATH="/vendor/rive.wasm"
+ADMIN_REPORT_EMAIL=""
+# Enable only after implementing/configuring a VAPID delivery worker.
+PUSH_DELIVERY_ENABLED="false"
+NEXT_PUBLIC_PUSH_VAPID_KEY=""

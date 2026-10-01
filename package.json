@@ -14,7 +14,11 @@
     "db:migrate": "prisma migrate deploy",
     "db:seed": "tsx prisma/seed.ts",
     "db:bootstrap-admin": "tsx scripts/bootstrap-admin.ts",
-    "postinstall": "prisma generate"
+    "postinstall": "prisma generate",
+    "dev:kitchen": "next dev --webpack -p 3005",
+    "start:kitchen": "next start -p 3005",
+    "kitchen:scheduler": "tsx scripts/run-kitchen-scheduler.ts",
+    "test:kitchen": "playwright test --config playwright.kitchen.config.ts"
   },
   "engines": {
     "node": ">=22.18.0"

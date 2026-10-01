@@ -1,33 +1,653 @@
 "use client";
-
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { Check, ChefHat, Clock3, Flame, LoaderCircle, RefreshCw } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { Flame, RefreshCw } from "lucide-react";
 import type { Locale } from "@/lib/locale";
+import { kitchenCopy } from "@/lib/kitchen-copy";
+import {
+  KitchenMariachi,
+  type MariachiState,
+} from "@/components/kitchen-mariachi";
 import "../app/kitchen.css";
-
-type Status = "NUEVO" | "CONFIRMADO" | "EN_PREPARACION" | "LISTO" | "EN_CAMINO";
-type KitchenOrder = { publicId: string; type: "PICKUP" | "DELIVERY"; status: Status; createdAt: string; notes: string | null; items: { productName: string; quantity: number; instructions: string | null; modifiers: { modifierName: string }[] }[] };
-const columns: Status[] = ["NUEVO", "EN_PREPARACION", "LISTO", "EN_CAMINO"];
-const messages = {
-  es: { onWay: "EN CAMINO", dispatch: "Enviar a reparto", delivered: "Marcar entregado", cancel: "Cancelar pedido", noShow: "No recogido", confirm: "¿Confirmas esta acción para el pedido", updateFail: "No se pudo actualizar el pedido. Actualiza las comandas y vuelve a intentarlo.", refresh: "Actualizar", title: "Comandas de cocina", subtitle: "Pedidos activos · actualización automática", new: "NUEVOS", cooking: "EN PREPARACIÓN", ready: "LISTOS", pickup: "Recoger", delivery: "Entrega", accept: "Aceptar", start: "Empezar", finish: "Listo", loading: "Cargando comandas…", fail: "No se pudieron cargar las comandas.", elapsed: "min", empty: "Sin pedidos en esta columna", order: "Pedido" },
-  en: { onWay: "ON THE WAY", dispatch: "Dispatch delivery", delivered: "Mark delivered", cancel: "Cancel order", noShow: "Not collected", confirm: "Confirm this action for order", updateFail: "Could not update the order. Refresh orders and try again.", refresh: "Refresh", title: "Kitchen orders", subtitle: "Active orders · updates automatically", new: "NEW", cooking: "PREPARING", ready: "READY", pickup: "Pickup", delivery: "Delivery", accept: "Accept", start: "Start", finish: "Ready", loading: "Loading orders…", fail: "Could not load kitchen orders.", elapsed: "min", empty: "No orders in this column", order: "Order" },
-  de: { onWay: "UNTERWEGS", dispatch: "Lieferung starten", delivered: "Als zugestellt markieren", cancel: "Bestellung stornieren", noShow: "Nicht abgeholt", confirm: "Aktion für diese Bestellung bestätigen", updateFail: "Bestellung konnte nicht aktualisiert werden. Bitte aktualisieren und erneut versuchen.", refresh: "Aktualisieren", title: "Küchenbestellungen", subtitle: "Aktive Bestellungen · automatische Aktualisierung", new: "NEU", cooking: "IN ZUBEREITUNG", ready: "FERTIG", pickup: "Abholung", delivery: "Lieferung", accept: "Annehmen", start: "Starten", finish: "Fertig", loading: "Bestellungen werden geladen…", fail: "Küchenbestellungen konnten nicht geladen werden.", elapsed: "Min.", empty: "Keine Bestellungen in dieser Spalte", order: "Bestellung" },
-} satisfies Record<Locale, Record<string, string>>;
-
-export function KitchenBoard({ locale }: { locale: Locale }) {
-  const t = messages[locale];
-  const [orders, setOrders] = useState<KitchenOrder[]>([]);
-  const [canMarkNoShow, setCanMarkNoShow] = useState(false);
-  const [updateError, setUpdateError] = useState(false);
-  const [failed, setFailed] = useState(false);
-  const [busy, setBusy] = useState<string | null>(null);
-  const [minute, setMinute] = useState(Date.now());
+type Item = {
+  id: string;
+  productName: string;
+  quantity: number;
+  instructions: string | null;
+  allergens: string[];
+  allergensRecorded: boolean;
+  stationName: string | null;
+  cookStatus: string;
+  assignedTo: string | null;
+  startedAt: string | null;
+  finishedAt: string | null;
+  estimatedAt: string | null;
+  estimatedUntil: string | null;
+  modifiers: { modifierName: string }[];
+};
+type Ticket = {
+  publicId: string;
+  type: "PICKUP" | "DELIVERY";
+  status: string;
+  createdAt: string;
+  notes: string | null;
+  deliveryNote: string | null;
+  estimatedReadyAt: string | null;
+  estimatedReadyUntil: string | null;
+  inventoryComplete: boolean;
+  preparationDeadlineAt: string | null;
+  items: Item[];
+  statusHistory: { to: string; createdAt: string; changedBy: string | null }[];
+};
+type Snapshot = {
+  orders: Ticket[];
+  canManage: boolean;
+  canMarkNoShow: boolean;
+  settings: {
+    acceptingOrders: boolean;
+    timezone: string;
+    serviceMode: string;
+  } | null;
+  shift: {
+    id: string;
+    openedAt: string;
+    pauses: { startedAt: string; endedAt: string | null }[];
+  } | null;
+  lowStock: {
+    id: string;
+    name: string;
+    stock: number;
+    reserved: number;
+    unit: string;
+  }[];
+  staff: { id: string; firstName: string; lastName: string }[];
+  events: { id: string; kind: string; publicId?: string }[];
+  mariachiResource: string | null;
+};
+export function KitchenBoard({
+  locale,
+  actorId,
+}: {
+  locale: Locale;
+  actorId: string;
+}) {
+  const router = useRouter();
+  const t = kitchenCopy[locale];
+  const [data, setData] = useState<Snapshot | null>(null),
+    [failed, setFailed] = useState(false),
+    [transport, setTransport] = useState("poll"),
+    [busy, setBusy] = useState(false),
+    [error, setError] = useState(""),
+    [now, setNow] = useState(Date.now()),
+    [animations, setAnimations] = useState(true),
+    [sound, setSound] = useState(false),
+    [pulse, setPulse] = useState<MariachiState>("idle"),
+    [assignees, setAssignees] = useState<Record<string, string>>({});
+  const seen = useRef<Set<string>>(new Set()),
+    initialized = useRef(false),
+    audio = useRef<AudioContext | null>(null),
+    soundRef = useRef(false),
+    pulseTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined),
+    lastReceived = useRef(0);
+  const ingest = useCallback(
+    (snapshot: Snapshot) => {
+      if (!navigator.onLine) {
+        setFailed(true);
+        return;
+      }
+      setData(snapshot);
+      setFailed(false);
+      lastReceived.current = Date.now();
+      if (!initialized.current) {
+        try {
+          seen.current = new Set(
+            JSON.parse(
+              sessionStorage.getItem(`kitchen-events:${actorId}`) ?? "[]",
+            ),
+          );
+        } catch {}
+        if (!seen.current.size)
+          for (const e of snapshot.events) seen.current.add(e.id);
+        initialized.current = true;
+      }
+      const fresh = snapshot.events.filter((e) => !seen.current.has(e.id));
+      for (const e of snapshot.events) seen.current.add(e.id);
+      const ids = [...seen.current].slice(-1000);
+      seen.current = new Set(ids);
+      try {
+        sessionStorage.setItem(
+          `kitchen-events:${actorId}`,
+          JSON.stringify(ids),
+        );
+      } catch {}
+      if (fresh.some((e) => e.kind === "NUEVO" || e.kind === "LISTO")) {
+        setPulse(fresh.some((e) => e.kind === "LISTO") ? "ready" : "new");
+        if (pulseTimer.current) clearTimeout(pulseTimer.current);
+        pulseTimer.current = setTimeout(() => setPulse("idle"), 4000);
+        if (
+          soundRef.current &&
+          audio.current &&
+          audio.current.state === "running"
+        ) {
+          const osc = audio.current.createOscillator(),
+            gain = audio.current.createGain();
+          osc.frequency.value = 660;
+          gain.gain.value = 0.08;
+          osc.connect(gain);
+          gain.connect(audio.current.destination);
+          osc.start();
+          gain.gain.exponentialRampToValueAtTime(
+            0.001,
+            audio.current.currentTime + 0.25,
+          );
+          osc.stop(audio.current.currentTime + 0.3);
+        }
+      }
+    },
+    [actorId],
+  );
   const load = useCallback(async () => {
-    try { const response = await fetch("/api/kitchen/orders", { cache: "no-store" }); if (!response.ok) throw new Error(); const data = await response.json() as { orders: KitchenOrder[]; canMarkNoShow: boolean }; setOrders(data.orders); setCanMarkNoShow(data.canMarkNoShow); setFailed(false); } catch { setFailed(true); }
-  }, []);
-  useEffect(() => { void load(); const poll = window.setInterval(() => void load(), 7000); const tick = window.setInterval(() => setMinute(Date.now()), 30000); return () => { window.clearInterval(poll); window.clearInterval(tick); }; }, [load]);
-  async function update(order: KitchenOrder, status: string) { if (["CANCELADO", "NO_PRESENTADO", "ENTREGADO"].includes(status) && !window.confirm(`${t.confirm} ${order.publicId}: ${status === "CANCELADO" ? t.cancel : status === "NO_PRESENTADO" ? t.noShow : t.delivered}?`)) return; setBusy(order.publicId); setUpdateError(false); try { const response = await fetch(`/api/orders/${order.publicId}`, { method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify({ status }) }); if (!response.ok) throw new Error(); await load(); } catch { setUpdateError(true); } finally { setBusy(null); } }
-  const displayStatus = (order: KitchenOrder) => order.status === "CONFIRMADO" ? "EN_PREPARACION" : order.status;
-  return <main className="kitchen-page"><header className="kitchen-header"><div><Link href="/" className="kitchen-brand"><span className="brand-mark"><Flame size={18} /></span>PANCHO VILLA</Link><h1>{t.title}</h1><p>{t.subtitle}</p></div><button className="kitchen-refresh" type="button" onClick={() => void load()} aria-label={t.refresh}><RefreshCw size={18} /></button></header>{failed && <p className="kitchen-alert" role="alert">{t.fail} <button type="button" onClick={() => void load()}>{t.loading}</button></p>}{updateError && <p className="kitchen-alert" role="alert">{t.updateFail}</p>}<div className="kitchen-columns">{columns.map((status) => { const filtered = orders.filter((order) => displayStatus(order) === status); return <section className={`kitchen-column kitchen-${status.toLowerCase()}`} key={status}><header><h2>{t[status === "NUEVO" ? "new" : status === "EN_PREPARACION" ? "cooking" : status === "LISTO" ? "ready" : "onWay"]}</h2><span>{filtered.length}</span></header>{filtered.length === 0 && <p className="kitchen-empty">{t.empty}</p>}{filtered.map((order) => { const elapsed = Math.max(0, Math.floor((minute - new Date(order.createdAt).getTime()) / 60000)); const next = order.status === "NUEVO" ? "CONFIRMADO" : order.status === "CONFIRMADO" ? "EN_PREPARACION" : "LISTO"; const action = order.status === "NUEVO" ? t.accept : order.status === "CONFIRMADO" ? t.start : t.finish; return <article className={`kitchen-order ${elapsed >= 20 ? "overdue" : ""}`} key={order.publicId}><div className="kitchen-ticket-head"><strong>{order.publicId}</strong><span className="kitchen-time"><Clock3 size={14} />{elapsed} {t.elapsed}</span></div><p className="kitchen-type">{order.type === "PICKUP" ? t.pickup : t.delivery}</p><ul>{order.items.map((item, i) => <li key={`${item.productName}-${i}`}><strong>{item.quantity}×</strong><div><b>{item.productName}</b>{item.modifiers.map((mod, mi) => <small key={mi}>+ {mod.modifierName}</small>)}{item.instructions && <small className="kitchen-instruction">{item.instructions}</small>}</div></li>)}</ul>{order.notes && <p className="kitchen-note">{order.notes}</p>}<div className="kitchen-actions">{(order.status === "LISTO" ? [{ status: order.type === "DELIVERY" ? "EN_CAMINO" : "ENTREGADO", label: order.type === "DELIVERY" ? t.dispatch : t.delivered }, ...(canMarkNoShow && order.type === "PICKUP" ? [{ status: "NO_PRESENTADO", label: t.noShow }] : [])] : order.status === "EN_CAMINO" ? [{ status: "ENTREGADO", label: t.delivered }] : [{ status: next, label: action }, ...(["NUEVO", "CONFIRMADO"].includes(order.status) ? [{ status: "CANCELADO", label: t.cancel }] : [])]).map((control) => <button key={control.status} className={`kitchen-action ${["CANCELADO", "NO_PRESENTADO"].includes(control.status) ? "kitchen-action-secondary" : ""}`} type="button" disabled={busy !== null} onClick={() => void update(order, control.status)}>{busy === order.publicId ? <LoaderCircle className="spin-icon" size={16} /> : <Check size={16} />}{control.label}</button>)}</div>{elapsed >= 20 && <p className="kitchen-wait-alert" role="status"><ChefHat size={13} />{elapsed} {t.elapsed}</p>}</article>; })}</section>; })}</div></main>;
+    try {
+      const r = await fetch("/api/kitchen/orders", { cache: "no-store" });
+      if (r.status === 401 || r.status === 403) {
+        setData(null);
+        setFailed(true);
+        router.replace(r.status === 403 ? "/cuenta" : "/login?expired=1");
+        return;
+      }
+      if (!r.ok) throw Error();
+      ingest(await r.json());
+    } catch {
+      setFailed(true);
+    }
+  }, [ingest, router]);
+  useEffect(() => {
+    const reduced = matchMedia("(prefers-reduced-motion: reduce)");
+    const preference = () => {
+      setAnimations(
+        !reduced.matches && localStorage.getItem("kitchen-animation") !== "off",
+      );
+    };
+    preference();
+    reduced.addEventListener("change", preference);
+    void load();
+    let eventSource: EventSource | null = null;
+    let revoked = false;
+    const connect = () => {
+      if (revoked) return;
+      eventSource = new EventSource("/api/kitchen/stream");
+      eventSource.addEventListener("snapshot", (event) => {
+        ingest(JSON.parse((event as MessageEvent).data));
+        setTransport("sse");
+      });
+      eventSource.addEventListener("unavailable", () => {
+        setFailed(true);
+        setTransport("poll");
+      });
+      eventSource.addEventListener("revoked", () => {
+        revoked = true;
+        setData(null);
+        setFailed(true);
+        eventSource?.close();
+        router.replace("/cuenta");
+      });
+      eventSource.onerror = () => {
+        setTransport("poll");
+        void load();
+      };
+    };
+    connect();
+    const poll = setInterval(() => {
+      if (!revoked && Date.now() - lastReceived.current > 6500) void load();
+    }, 7000);
+    const tick = setInterval(() => {
+      setNow(Date.now());
+      if (lastReceived.current && Date.now() - lastReceived.current > 15000)
+        setFailed(true);
+    }, 1000);
+    const offline = () => {
+      setFailed(true);
+      setTransport("poll");
+      eventSource?.close();
+    };
+    const online = () => {
+      if (!revoked) {
+        eventSource?.close();
+        connect();
+        void load();
+      }
+    };
+    window.addEventListener("offline", offline);
+    window.addEventListener("online", online);
+    const focus = () => {
+      if (!revoked) void load();
+    };
+    window.addEventListener("focus", focus);
+    return () => {
+      clearInterval(poll);
+      clearInterval(tick);
+      if (pulseTimer.current) clearTimeout(pulseTimer.current);
+      eventSource?.close();
+      window.removeEventListener("focus", focus);
+      window.removeEventListener("offline", offline);
+      window.removeEventListener("online", online);
+      reduced.removeEventListener("change", preference);
+    };
+  }, [ingest, load, router]);
+  async function action(url: string, body: unknown, method = "POST") {
+    setBusy(true);
+    setError("");
+    try {
+      const r = await fetch(url, {
+        method,
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      if (!r.ok) {
+        const e = await r.json();
+        throw Error(e.error);
+      }
+      await load();
+    } catch (e) {
+      setError(`${t.error}: ${e instanceof Error ? e.message : ""}`);
+    } finally {
+      setBusy(false);
+    }
+  }
+  const time = (value: string) =>
+    new Date(value).toLocaleTimeString(locale, {
+      hour: "2-digit",
+      minute: "2-digit",
+      timeZone: data?.settings?.timezone ?? "Europe/Berlin",
+    });
+  const interval = (from: string | null, until: string | null) =>
+    from && until ? `${time(from)}–${time(until)}` : t.pending;
+  const orders = data?.orders ?? [],
+    overdue = orders.filter(
+      (o) =>
+        ["NUEVO", "CONFIRMADO", "EN_PREPARACION"].includes(o.status) &&
+        o.preparationDeadlineAt &&
+        new Date(o.preparationDeadlineAt).getTime() < now,
+    );
+  const paused = data?.shift?.pauses.some((p) => !p.endedAt),
+    open = data?.settings?.acceptingOrders;
+  const state: MariachiState = !open
+    ? "closed"
+    : pulse !== "idle"
+      ? pulse
+      : overdue.length
+        ? "delay"
+        : "idle";
+  function setAnimation(value: boolean) {
+    const allowed =
+      value && !matchMedia("(prefers-reduced-motion: reduce)").matches;
+    setAnimations(allowed);
+    localStorage.setItem("kitchen-animation", allowed ? "on" : "off");
+  }
+  async function toggleSound() {
+    if (!sound) {
+      audio.current ??= new AudioContext();
+      await audio.current.resume();
+    }
+    soundRef.current = !sound;
+    setSound(!sound);
+  }
+  function update(order: Ticket, status: string) {
+    if (
+      ["CANCELADO", "NO_PRESENTADO", "ENTREGADO"].includes(status) &&
+      !confirm(t.confirm)
+    )
+      return;
+    void action(
+      `/api/orders/${order.publicId}`,
+      { status, requestId: crypto.randomUUID() },
+      "PATCH",
+    );
+  }
+  function shift(actionName: string) {
+    if (actionName === "CLOSE" && !confirm(t.confirm)) return;
+    void action("/api/kitchen/shift", { action: actionName });
+  }
+  const groups = [
+    { key: "new", test: (o: Ticket) => o.status === "NUEVO" },
+    {
+      key: "cooking",
+      test: (o: Ticket) => ["CONFIRMADO", "EN_PREPARACION"].includes(o.status),
+    },
+    { key: "ready", test: (o: Ticket) => o.status === "LISTO" },
+    {
+      key: "history",
+      test: (o: Ticket) =>
+        ["EN_CAMINO", "ENTREGADO", "CANCELADO", "NO_PRESENTADO"].includes(
+          o.status,
+        ),
+    },
+  ] as const;
+  return (
+    <main className="kitchen-page">
+      <header className="kitchen-header flex flex-wrap gap-4 py-5">
+        <div>
+          <Link href="/" className="kitchen-brand">
+            <span className="brand-mark">
+              <Flame size={18} />
+            </span>
+            PANCHO VILLA
+          </Link>
+          <h1>{t.title}</h1>
+          <p>{transport === "sse" ? t.live : t.polling}</p>
+        </div>
+        <KitchenMariachi
+          state={state}
+          enabled={animations}
+          resource={data?.mariachiResource ?? null}
+        />
+        <div className="kitchen-shift-info">
+          <strong>{time(new Date(now).toISOString())}</strong>
+          <p>
+            {open ? t.open : t.closed}
+            {paused ? ` · ${t.pause}` : ""}
+          </p>
+          <p>
+            {data?.shift
+              ? `${t.shift}: ${Math.floor((now - new Date(data.shift.openedAt).getTime()) / 60000)} ${t.minutes} · ${t.effective}: ${Math.floor((now - new Date(data.shift.openedAt).getTime() - data.shift.pauses.reduce((sum, p) => sum + new Date(p.endedAt ?? now).getTime() - new Date(p.startedAt).getTime(), 0)) / 60000)} ${t.minutes}`
+              : t.noShift}
+          </p>
+        </div>
+        <button
+          type="button"
+          className="kitchen-refresh"
+          onClick={() => void load()}
+          aria-label={t.refresh}
+        >
+          <RefreshCw />
+        </button>
+      </header>
+      <div className="kitchen-toolbar flex flex-wrap gap-3 py-4">
+        <label>
+          <input
+            type="checkbox"
+            checked={animations}
+            onChange={(e) => setAnimation(e.target.checked)}
+          />
+          {t.animations}
+        </label>
+        <button
+          type="button"
+          onClick={() => void toggleSound()}
+          aria-pressed={sound}
+        >
+          {t.sound}: {sound ? "✓" : "—"}
+        </button>
+        {!data?.shift ? (
+          <button disabled={busy || failed} onClick={() => shift("OPEN")}>
+            {t.openShift}
+          </button>
+        ) : (
+          <>
+            <button
+              disabled={busy || failed}
+              onClick={() => shift(paused ? "RESUME" : "PAUSE")}
+            >
+              {paused ? t.resume : t.pause}
+            </button>
+            <button
+              disabled={busy || failed}
+              onClick={() => shift("STOP_ORDERS")}
+            >
+              {t.stop}
+            </button>
+            <button disabled={busy || failed} onClick={() => shift("CLOSE")}>
+              {t.closeShift}
+            </button>
+          </>
+        )}
+        {data?.canManage && (
+          <>
+            <Link href="/admin/inventario">{t.inventory}</Link>
+            <Link href="/admin/ventas">{t.sales}</Link>
+          </>
+        )}
+      </div>
+      <div className="kitchen-counts flex flex-wrap gap-3">
+        {groups.slice(0, 3).map((g) => (
+          <span key={g.key}>
+            {t[g.key]} <b>{orders.filter(g.test).length}</b>
+          </span>
+        ))}
+      </div>
+      {failed && (
+        <p className="kitchen-alert" role="alert">
+          {t.connection}
+        </p>
+      )}
+      {error && (
+        <p className="kitchen-alert" role="alert">
+          {error}
+        </p>
+      )}
+      {overdue.length > 0 && (
+        <p className="kitchen-alert">
+          {t.delay}: {overdue.length}
+        </p>
+      )}
+      {Boolean(data?.lowStock.length) && (
+        <p className="kitchen-alert">
+          {t.lowStock}:{" "}
+          {data!.lowStock
+            .map((i) => `${i.name} (${i.stock - i.reserved} ${i.unit})`)
+            .join(" · ")}
+        </p>
+      )}
+      <div className="kitchen-columns">
+        {groups.map((group) => (
+          <section
+            className={`kitchen-column kitchen-${group.key}`}
+            key={group.key}
+          >
+            <header>
+              <h2>{t[group.key]}</h2>
+              <span>{orders.filter(group.test).length}</span>
+            </header>
+            {!orders.filter(group.test).length && (
+              <p className="kitchen-empty">{t.empty}</p>
+            )}
+            {orders.filter(group.test).map((order) => (
+              <article
+                className={`kitchen-order ${overdue.includes(order) ? "overdue" : ""}`}
+                key={order.publicId}
+              >
+                <div className="kitchen-ticket-head">
+                  <strong>{order.publicId}</strong>
+                </div>
+                <p>
+                  {time(order.createdAt)} · {t.wait}:{" "}
+                  {Math.max(
+                    0,
+                    Math.floor(
+                      (now - new Date(order.createdAt).getTime()) / 60000,
+                    ),
+                  )}{" "}
+                  {t.minutes}
+                </p>
+                <p className="kitchen-type">
+                  {order.type === "PICKUP" ? t.pickup : t.delivery} ·{" "}
+                  {order.status}
+                </p>
+                <p>
+                  {t.estimated}:{" "}
+                  <b>
+                    {interval(
+                      order.estimatedReadyAt,
+                      order.estimatedReadyUntil,
+                    )}
+                  </b>
+                </p>
+                <ul>
+                  {order.items.map((item) => (
+                    <li key={item.id}>
+                      <strong>{item.quantity}×</strong>
+                      <div>
+                        <b>{item.productName}</b>
+                        {item.modifiers.map((m, i) => (
+                          <small key={i}>+ {m.modifierName}</small>
+                        ))}
+                        {item.instructions && (
+                          <small className="kitchen-instruction">
+                            {item.instructions}
+                          </small>
+                        )}
+                        <small>
+                          {t.allergens}:{" "}
+                          {item.allergensRecorded
+                            ? item.allergens.join(", ") || "—"
+                            : t.unknownAllergens}
+                        </small>
+                        <small>
+                          {t.station}: {item.stationName ?? t.unassigned}
+                        </small>
+                        <small>
+                          {t.status}:{" "}
+                          {item.cookStatus === "READY"
+                            ? t.readyItem
+                            : item.cookStatus === "PREPARING"
+                              ? t.preparingItem
+                              : t.pendingItem}
+                        </small>
+                        <small>
+                          {interval(item.estimatedAt, item.estimatedUntil)}
+                        </small>
+                        <small>
+                          {t.responsible}:{" "}
+                          {data?.staff.find((s) => s.id === item.assignedTo)
+                            ?.firstName ?? t.unassigned}
+                        </small>
+                        {order.status === "EN_PREPARACION" &&
+                          item.cookStatus === "PENDING" && (
+                            <label>
+                              {t.responsible}
+                              <select
+                                value={assignees[item.id] ?? actorId}
+                                onChange={(e) =>
+                                  setAssignees((a) => ({
+                                    ...a,
+                                    [item.id]: e.target.value,
+                                  }))
+                                }
+                              >
+                                {data?.staff.map((s) => (
+                                  <option key={s.id} value={s.id}>
+                                    {s.firstName} {s.lastName}
+                                  </option>
+                                ))}
+                              </select>
+                            </label>
+                          )}
+                        {order.status === "EN_PREPARACION" &&
+                          item.cookStatus !== "READY" && (
+                            <button
+                              className="kitchen-item-action"
+                              disabled={busy || failed}
+                              onClick={() =>
+                                void action(
+                                  `/api/kitchen/items/${item.id}`,
+                                  {
+                                    status:
+                                      item.cookStatus === "PENDING"
+                                        ? "PREPARING"
+                                        : "READY",
+                                    requestId: crypto.randomUUID(),
+                                    assignedTo:
+                                      assignees[item.id] ??
+                                      item.assignedTo ??
+                                      actorId,
+                                  },
+                                  "PATCH",
+                                )
+                              }
+                            >
+                              {item.cookStatus === "PENDING"
+                                ? t.start
+                                : t.itemReady}
+                            </button>
+                          )}
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+                {order.notes && <p className="kitchen-note">{order.notes}</p>}
+                {order.deliveryNote && (
+                  <p className="kitchen-note">{order.deliveryNote}</p>
+                )}
+                {!order.inventoryComplete && (
+                  <p className="kitchen-note">{t.incomplete}</p>
+                )}
+                <div className="kitchen-actions">
+                  {(order.status === "NUEVO"
+                    ? [
+                        ["CONFIRMADO", t.accept],
+                        ["CANCELADO", t.cancel],
+                      ]
+                    : order.status === "CONFIRMADO"
+                      ? [
+                          ["EN_PREPARACION", t.start],
+                          ["CANCELADO", t.cancel],
+                        ]
+                      : order.status === "EN_PREPARACION"
+                        ? [["LISTO", t.finish]]
+                        : order.status === "LISTO"
+                          ? [
+                              [
+                                order.type === "DELIVERY"
+                                  ? "EN_CAMINO"
+                                  : "ENTREGADO",
+                                order.type === "DELIVERY"
+                                  ? t.dispatch
+                                  : t.delivered,
+                              ],
+                              ...(data?.canMarkNoShow && order.type === "PICKUP"
+                                ? [["NO_PRESENTADO", t.noShow]]
+                                : []),
+                            ]
+                          : order.status === "EN_CAMINO"
+                            ? [["ENTREGADO", t.delivered]]
+                            : []
+                  ).map(([status, label]) => (
+                    <button
+                      className="kitchen-action"
+                      key={status}
+                      disabled={
+                        busy ||
+                        failed ||
+                        (status === "LISTO" &&
+                          order.items.some((i) => i.cookStatus !== "READY"))
+                      }
+                      onClick={() => update(order, status)}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+                {group.key === "history" && (
+                  <details>
+                    <summary>{t.history}</summary>
+                    {order.statusHistory.map((h, i) => (
+                      <p key={i}>
+                        {time(h.createdAt)} · {h.to} ·{" "}
+                        {data?.staff.find((s) => s.id === h.changedBy)
+                          ?.firstName ??
+                          h.changedBy ??
+                          "—"}
+                      </p>
+                    ))}
+                  </details>
+                )}
+              </article>
+            ))}
+          </section>
+        ))}
+      </div>
+      <p>{t.soundsOnly}</p>
+    </main>
+  );
 }

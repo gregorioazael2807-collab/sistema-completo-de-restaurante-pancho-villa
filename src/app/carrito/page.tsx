@@ -2,15 +2,113 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
-import { ArrowLeft, Check, Minus, Plus, ShoppingBag, Trash2 } from "lucide-react";
+import {
+  ArrowLeft,
+  Check,
+  Minus,
+  Plus,
+  ShoppingBag,
+  Trash2,
+} from "lucide-react";
 import { useCart } from "@/components/cart-provider";
 import { normalizeLocalePreference, type Locale } from "@/lib/locale";
+import { kitchenCopy } from "@/lib/kitchen-copy";
 import "../checkout.css";
 
 const copy = {
-  es: { title: "Tu pedido", empty: "Tu carrito está esperando algo rico.", menu: "Volver al menú", account: "Mis pedidos", pickup: "Recoger", delivery: "Entrega a domicilio", name: "Nombre completo", email: "Correo electrónico", phone: "Teléfono", address: "Dirección", city: "Ciudad", postal: "Código postal", notes: "Notas para cocina", place: "Confirmar pedido", placing: "Guardando pedido…", subtotal: "Subtotal", tax: "Impuestos", fee: "Entrega", total: "Total estimado", minimum: "Pedido mínimo para entrega: ", required: "Completa los datos requeridos.", failure: "No pudimos crear el pedido. Comprueba tus datos e inténtalo otra vez.", remove: "Eliminar", thanks: "¡Pedido recibido!", order: "Número de pedido", tracking: "Ver estado del pedido", disclaimer: "El pago queda pendiente. El pedido se guarda sin procesar una tarjeta." },
-  en: { title: "Your order", empty: "Your cart is waiting for something delicious.", menu: "Back to menu", account: "My orders", pickup: "Pickup", delivery: "Delivery", name: "Full name", email: "Email address", phone: "Phone", address: "Street address", city: "City", postal: "Postal code", notes: "Kitchen notes", place: "Place order", placing: "Saving order…", subtotal: "Subtotal", tax: "Tax", fee: "Delivery", total: "Estimated total", minimum: "Delivery minimum: ", required: "Please complete the required details.", failure: "We could not create your order. Check your details and try again.", remove: "Remove", thanks: "Order received!", order: "Order number", tracking: "Track your order", disclaimer: "Payment remains pending. The order is saved without processing a card." },
-  de: { title: "Deine Bestellung", empty: "Dein Warenkorb wartet auf etwas Leckeres.", menu: "Zurück zur Speisekarte", account: "Meine Bestellungen", pickup: "Abholung", delivery: "Lieferung", name: "Vollständiger Name", email: "E-Mail-Adresse", phone: "Telefon", address: "Straße und Hausnummer", city: "Stadt", postal: "Postleitzahl", notes: "Hinweise für die Küche", place: "Bestellung aufgeben", placing: "Bestellung wird gespeichert…", subtotal: "Zwischensumme", tax: "Steuern", fee: "Lieferung", total: "Geschätzter Gesamtbetrag", minimum: "Mindestbestellwert für Lieferung: ", required: "Bitte fülle die erforderlichen Angaben aus.", failure: "Die Bestellung konnte nicht erstellt werden. Bitte prüfe deine Angaben.", remove: "Entfernen", thanks: "Bestellung erhalten!", order: "Bestellnummer", tracking: "Bestellung verfolgen", disclaimer: "Die Zahlung bleibt ausstehend. Es werden keine Kartendaten verarbeitet." },
+  es: {
+    title: "Tu pedido",
+    empty: "Tu carrito está esperando algo rico.",
+    menu: "Volver al menú",
+    account: "Mis pedidos",
+    pickup: "Recoger",
+    delivery: "Entrega a domicilio",
+    name: "Nombre completo",
+    email: "Correo electrónico",
+    phone: "Teléfono",
+    address: "Dirección",
+    city: "Ciudad",
+    postal: "Código postal",
+    notes: "Notas para cocina",
+    place: "Confirmar pedido",
+    placing: "Guardando pedido…",
+    subtotal: "Subtotal",
+    tax: "Impuestos",
+    fee: "Entrega",
+    total: "Total estimado",
+    minimum: "Pedido mínimo para entrega: ",
+    required: "Completa los datos requeridos.",
+    failure:
+      "No pudimos crear el pedido. Comprueba tus datos e inténtalo otra vez.",
+    remove: "Eliminar",
+    thanks: "¡Pedido recibido!",
+    order: "Número de pedido",
+    tracking: "Ver estado del pedido",
+    disclaimer:
+      "El pago queda pendiente. El pedido se guarda sin procesar una tarjeta.",
+  },
+  en: {
+    title: "Your order",
+    empty: "Your cart is waiting for something delicious.",
+    menu: "Back to menu",
+    account: "My orders",
+    pickup: "Pickup",
+    delivery: "Delivery",
+    name: "Full name",
+    email: "Email address",
+    phone: "Phone",
+    address: "Street address",
+    city: "City",
+    postal: "Postal code",
+    notes: "Kitchen notes",
+    place: "Place order",
+    placing: "Saving order…",
+    subtotal: "Subtotal",
+    tax: "Tax",
+    fee: "Delivery",
+    total: "Estimated total",
+    minimum: "Delivery minimum: ",
+    required: "Please complete the required details.",
+    failure:
+      "We could not create your order. Check your details and try again.",
+    remove: "Remove",
+    thanks: "Order received!",
+    order: "Order number",
+    tracking: "Track your order",
+    disclaimer:
+      "Payment remains pending. The order is saved without processing a card.",
+  },
+  de: {
+    title: "Deine Bestellung",
+    empty: "Dein Warenkorb wartet auf etwas Leckeres.",
+    menu: "Zurück zur Speisekarte",
+    account: "Meine Bestellungen",
+    pickup: "Abholung",
+    delivery: "Lieferung",
+    name: "Vollständiger Name",
+    email: "E-Mail-Adresse",
+    phone: "Telefon",
+    address: "Straße und Hausnummer",
+    city: "Stadt",
+    postal: "Postleitzahl",
+    notes: "Hinweise für die Küche",
+    place: "Bestellung aufgeben",
+    placing: "Bestellung wird gespeichert…",
+    subtotal: "Zwischensumme",
+    tax: "Steuern",
+    fee: "Lieferung",
+    total: "Geschätzter Gesamtbetrag",
+    minimum: "Mindestbestellwert für Lieferung: ",
+    required: "Bitte fülle die erforderlichen Angaben aus.",
+    failure:
+      "Die Bestellung konnte nicht erstellt werden. Bitte prüfe deine Angaben.",
+    remove: "Entfernen",
+    thanks: "Bestellung erhalten!",
+    order: "Bestellnummer",
+    tracking: "Bestellung verfolgen",
+    disclaimer:
+      "Die Zahlung bleibt ausstehend. Es werden keine Kartendaten verarbeitet.",
+  },
 } satisfies Record<Locale, Record<string, string>>;
 
 export default function CartPage() {
@@ -19,32 +117,479 @@ export default function CartPage() {
   const [type, setType] = useState<"PICKUP" | "DELIVERY">("PICKUP");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
-  const [order, setOrder] = useState<{ id: string; publicId: string; total: string | number; currency: string } | null>(null);
-  const [pricing, setPricing] = useState<{ taxRate: number; deliveryFee: number; minDeliveryAmount: number; currency: string; pickupEnabled: boolean; deliveryEnabled: boolean; acceptingOrders: boolean } | null>(null);
-  const [form, setForm] = useState({ customerName: "", customerEmail: "", customerPhone: "", line1: "", city: "", postalCode: "", notes: "" });
+  const [order, setOrder] = useState<{
+    id: string;
+    publicId: string;
+    total: string | number;
+    currency: string;
+  } | null>(null);
+  const [pricing, setPricing] = useState<{
+    taxRate: number;
+    deliveryFee: number;
+    minDeliveryAmount: number;
+    currency: string;
+    pickupEnabled: boolean;
+    deliveryEnabled: boolean;
+    acceptingOrders: boolean;
+  } | null>(null);
+  const [form, setForm] = useState({
+    customerName: "",
+    customerEmail: "",
+    customerPhone: "",
+    line1: "",
+    city: "",
+    postalCode: "",
+    notes: "",
+  });
+  const [quote, setQuote] = useState<{
+    id: string;
+    straightKm: number;
+    routeMeters: number;
+    minSeconds: number;
+    maxSeconds: number;
+    mode: string;
+    matchedAddress: string;
+  } | null>(null);
+  const [quoteError, setQuoteError] = useState("");
+  const [quoteBusy, setQuoteBusy] = useState(false);
   const attemptRef = useRef<{ signature: string; key: string } | null>(null);
-  useEffect(() => setLocale(normalizeLocalePreference(localStorage.getItem("pancho-villa-locale"))), []);
-  useEffect(() => { fetch("/api/checkout-info", { cache: "no-store" }).then((response) => response.ok ? response.json() as Promise<typeof pricing> : null).then((value) => setPricing(value)).catch(() => setPricing(null)); }, []);
+  useEffect(
+    () =>
+      setLocale(
+        normalizeLocalePreference(localStorage.getItem("pancho-villa-locale")),
+      ),
+    [],
+  );
+  useEffect(() => {
+    const load = () =>
+      fetch("/api/checkout-info", { cache: "no-store" })
+        .then((response) =>
+          response.ok ? (response.json() as Promise<typeof pricing>) : null,
+        )
+        .then((value) => setPricing(value))
+        .catch(() => setPricing(null));
+    void load();
+    const timer = setInterval(() => void load(), 7000);
+    return () => clearInterval(timer);
+  }, []);
   const t = copy[locale];
-  const subtotal = useMemo(() => cart.items.reduce((sum, item) => sum + item.price * item.quantity, 0), [cart.items]);
-  const money = (n: number) => new Intl.NumberFormat(locale, { style: "currency", currency: pricing?.currency ?? cart.items[0]?.currency ?? "EUR" }).format(n);
+  const subtotal = useMemo(
+    () => cart.items.reduce((sum, item) => sum + item.price * item.quantity, 0),
+    [cart.items],
+  );
+  const money = (n: number) =>
+    new Intl.NumberFormat(locale, {
+      style: "currency",
+      currency: pricing?.currency ?? cart.items[0]?.currency ?? "EUR",
+    }).format(n);
   const tax = Math.round(subtotal * (pricing?.taxRate ?? 0) * 100) / 100;
-  const delivery = type === "DELIVERY" ? pricing?.deliveryFee ?? 0 : 0;
-  const update = (key: keyof typeof form, value: string) => setForm((old) => ({ ...old, [key]: value }));
+  const delivery = type === "DELIVERY" ? (pricing?.deliveryFee ?? 0) : 0;
+  const update = (key: keyof typeof form, value: string) => {
+    if (["line1", "city", "postalCode", "customerName"].includes(key))
+      setQuote(null);
+    setForm((old) => ({ ...old, [key]: value }));
+  };
+  async function verifyDelivery() {
+    setQuoteBusy(true);
+    setQuoteError("");
+    setQuote(null);
+    try {
+      const r = await fetch("/api/delivery/quote", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          recipient: form.customerName,
+          line1: form.line1,
+          city: form.city,
+          postalCode: form.postalCode,
+          countryCode: "DE",
+        }),
+      });
+      const v = await r.json();
+      if (!r.ok) throw Error(v.error);
+      setQuote(v);
+    } catch (e) {
+      setQuoteError(
+        e instanceof Error && e.message === "OUTSIDE_COVERAGE"
+          ? locale === "es"
+            ? "Esta dirección está fuera del radio de 7 km."
+            : locale === "en"
+              ? "This address is outside the 7 km radius."
+              : "Diese Adresse liegt außerhalb des 7-km-Radius."
+          : kitchenCopy[locale].coveragePending,
+      );
+    } finally {
+      setQuoteBusy(false);
+    }
+  }
   async function submit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault(); setBusy(true); setError("");
-      const payload = { locale, type, customerName: form.customerName, customerEmail: form.customerEmail, customerPhone: form.customerPhone, notes: form.notes || undefined, address: type === "DELIVERY" ? { recipient: form.customerName, line1: form.line1, city: form.city, postalCode: form.postalCode, countryCode: "DE" } : undefined, items: cart.items.map((item) => ({ productId: item.productId, quantity: item.quantity, instructions: item.instructions, modifierIds: item.modifierIds })) };
+    event.preventDefault();
+    setBusy(true);
+    setError("");
+    const payload = {
+      locale,
+      type,
+      deliveryQuoteId: type === "DELIVERY" ? quote?.id : undefined,
+      customerName: form.customerName,
+      customerEmail: form.customerEmail,
+      customerPhone: form.customerPhone,
+      notes: form.notes || undefined,
+      address:
+        type === "DELIVERY"
+          ? {
+              recipient: form.customerName,
+              line1: form.line1,
+              city: form.city,
+              postalCode: form.postalCode,
+              countryCode: "DE",
+            }
+          : undefined,
+      items: cart.items.map((item) => ({
+        productId: item.productId,
+        quantity: item.quantity,
+        instructions: item.instructions,
+        modifierIds: item.modifierIds,
+      })),
+    };
     const signature = JSON.stringify(payload);
-    if (!attemptRef.current || attemptRef.current.signature !== signature) attemptRef.current = { signature, key: crypto.randomUUID() };
+    if (!attemptRef.current || attemptRef.current.signature !== signature)
+      attemptRef.current = { signature, key: crypto.randomUUID() };
     const idempotencyKey = attemptRef.current.key;
     try {
-      const response = await fetch("/api/orders", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ ...payload, idempotencyKey }) });
+      const response = await fetch("/api/orders", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ ...payload, idempotencyKey }),
+      });
       const result = await response.json();
       if (!response.ok) throw new Error(result.error ?? "failed");
-      setOrder(result); attemptRef.current = null; cart.clear();
-    } catch { setError(t.failure); } finally { setBusy(false); }
+      setOrder(result);
+      attemptRef.current = null;
+      cart.clear();
+    } catch (e) {
+      setError(
+        e instanceof Error && e.message === "UNAUTHENTICATED"
+          ? locale === "es"
+            ? "Inicia sesión para confirmar y seguir tu pedido."
+            : locale === "en"
+              ? "Sign in to confirm and track your order."
+              : "Melde dich an, um deine Bestellung zu bestätigen und zu verfolgen."
+          : t.failure,
+      );
+    } finally {
+      setBusy(false);
+    }
   }
-  if (order) return <main className="checkout-shell"><section className="checkout-success"><span><Check size={34} /></span><p className="eyebrow">PANCHO VILLA</p><h1>{t.thanks}</h1><p>{t.order}: <strong>{order.publicId}</strong></p><Link className="button button-primary" href={`/pedido/${order.publicId}`}>{t.tracking}</Link><Link className="checkout-account-link" href="/cuenta">{t.account}</Link></section></main>;
-  return <main className="checkout-shell"><header className="checkout-head"><Link href="/menu"><ArrowLeft size={17} />{t.menu}</Link><span className="brand-mark"><ShoppingBag size={18} /></span></header><div className="checkout-grid"><section className="checkout-items"><p className="eyebrow">PANCHO VILLA · BERLIN</p><h1>{t.title}</h1>{cart.items.length === 0 ? <div className="checkout-empty"><ShoppingBag size={30} /><p>{t.empty}</p><Link className="button button-primary" href="/menu">{t.menu}</Link></div> : cart.items.map((item) => <article className="checkout-item" key={item.cartKey}><div><h2>{item.name}</h2>{item.modifierNames.length > 0 && <small className="checkout-modifiers">{item.modifierNames.join(" · ")}</small>}<strong>{money(item.price * item.quantity)}</strong><label>{t.notes}<input maxLength={500} value={item.instructions ?? ""} onChange={(e) => cart.setInstructions(item.cartKey, e.target.value)} /></label></div><div className="quantity-control"><button type="button" aria-label="−" onClick={() => cart.setQuantity(item.cartKey, item.quantity - 1)}><Minus size={14} /></button><span>{item.quantity}</span><button type="button" aria-label="+" onClick={() => cart.setQuantity(item.cartKey, item.quantity + 1)}><Plus size={14} /></button><button type="button" aria-label={t.remove} onClick={() => cart.remove(item.cartKey)}><Trash2 size={14} /></button></div></article>)}{cart.items.length > 0 && <div className="checkout-totals"><p>{t.subtotal}<strong>{money(subtotal)}</strong></p><p>{t.tax}<strong>{money(tax)}</strong></p>{type === "DELIVERY" && <p>{t.fee}<strong>{money(delivery)}</strong></p>}<p className="checkout-total">{t.total}<strong>{money(subtotal + tax + delivery)}</strong></p></div>}</section>
-    {cart.items.length > 0 && <form className="checkout-form" onSubmit={submit}><h2>{locale === "es" ? "¿Cómo quieres recibirlo?" : locale === "en" ? "How would you like it?" : "Wie möchtest du es erhalten?"}</h2><div className="order-type"><button className={type === "PICKUP" ? "chosen" : ""} type="button" disabled={!!pricing && (!pricing.pickupEnabled || !pricing.acceptingOrders)} onClick={() => setType("PICKUP")}>{t.pickup}</button><button className={type === "DELIVERY" ? "chosen" : ""} type="button" disabled={!!pricing && (!pricing.deliveryEnabled || !pricing.acceptingOrders)} onClick={() => setType("DELIVERY")}>{t.delivery}</button></div><label>{t.name}<input required minLength={2} maxLength={120} autoComplete="name" value={form.customerName} onChange={(e) => update("customerName", e.target.value)} /></label><label>{t.email}<input required type="email" maxLength={254} autoComplete="email" value={form.customerEmail} onChange={(e) => update("customerEmail", e.target.value)} /></label><label>{t.phone}<input required type="tel" minLength={5} maxLength={32} autoComplete="tel" value={form.customerPhone} onChange={(e) => update("customerPhone", e.target.value)} /></label>{type === "DELIVERY" && <><label>{t.address}<input required minLength={3} maxLength={180} autoComplete="street-address" value={form.line1} onChange={(e) => update("line1", e.target.value)} /></label><div className="checkout-two"><label>{t.city}<input required minLength={2} autoComplete="address-level2" value={form.city} onChange={(e) => update("city", e.target.value)} /></label><label>{t.postal}<input required minLength={3} autoComplete="postal-code" value={form.postalCode} onChange={(e) => update("postalCode", e.target.value)} /></label></div></>}<label>{t.notes}<textarea maxLength={1000} value={form.notes} onChange={(e) => update("notes", e.target.value)} /></label>{type === "DELIVERY" && pricing && subtotal < pricing.minDeliveryAmount && <p className="checkout-error" role="status">{t.minimum}{money(pricing.minDeliveryAmount)}</p>}{error && <p className="checkout-error" role="alert">{error}</p>}<p className="checkout-disclaimer">{t.disclaimer}</p><button className="button button-primary checkout-submit" disabled={busy || !pricing?.acceptingOrders || (type === "DELIVERY" && !!pricing && subtotal < pricing.minDeliveryAmount)}>{busy ? t.placing : t.place}</button></form>}</div></main>;
+  if (order)
+    return (
+      <main className="checkout-shell">
+        <section className="checkout-success">
+          <span>
+            <Check size={34} />
+          </span>
+          <p className="eyebrow">PANCHO VILLA</p>
+          <h1>{t.thanks}</h1>
+          <p>
+            {t.order}: <strong>{order.publicId}</strong>
+          </p>
+          <Link
+            className="button button-primary"
+            href={`/pedido/${order.publicId}`}
+          >
+            {t.tracking}
+          </Link>
+          <Link className="checkout-account-link" href="/cuenta">
+            {t.account}
+          </Link>
+        </section>
+      </main>
+    );
+  return (
+    <main className="checkout-shell">
+      <header className="checkout-head">
+        <Link href="/menu">
+          <ArrowLeft size={17} />
+          {t.menu}
+        </Link>
+        <span className="brand-mark">
+          <ShoppingBag size={18} />
+        </span>
+      </header>
+      <div className="checkout-grid">
+        <section className="checkout-items">
+          <p className="eyebrow">PANCHO VILLA · BERLIN</p>
+          <h1>{t.title}</h1>
+          {cart.items.length === 0 ? (
+            <div className="checkout-empty">
+              <ShoppingBag size={30} />
+              <p>{t.empty}</p>
+              <Link className="button button-primary" href="/menu">
+                {t.menu}
+              </Link>
+            </div>
+          ) : (
+            cart.items.map((item) => (
+              <article className="checkout-item" key={item.cartKey}>
+                <div>
+                  <h2>{item.name}</h2>
+                  {item.modifierNames.length > 0 && (
+                    <small className="checkout-modifiers">
+                      {item.modifierNames.join(" · ")}
+                    </small>
+                  )}
+                  <strong>{money(item.price * item.quantity)}</strong>
+                  <label>
+                    {t.notes}
+                    <input
+                      maxLength={500}
+                      value={item.instructions ?? ""}
+                      onChange={(e) =>
+                        cart.setInstructions(item.cartKey, e.target.value)
+                      }
+                    />
+                  </label>
+                </div>
+                <div className="quantity-control">
+                  <button
+                    type="button"
+                    aria-label="−"
+                    onClick={() =>
+                      cart.setQuantity(item.cartKey, item.quantity - 1)
+                    }
+                  >
+                    <Minus size={14} />
+                  </button>
+                  <span>{item.quantity}</span>
+                  <button
+                    type="button"
+                    aria-label="+"
+                    onClick={() =>
+                      cart.setQuantity(item.cartKey, item.quantity + 1)
+                    }
+                  >
+                    <Plus size={14} />
+                  </button>
+                  <button
+                    type="button"
+                    aria-label={t.remove}
+                    onClick={() => cart.remove(item.cartKey)}
+                  >
+                    <Trash2 size={14} />
+                  </button>
+                </div>
+              </article>
+            ))
+          )}
+          {cart.items.length > 0 && (
+            <div className="checkout-totals">
+              <p>
+                {t.subtotal}
+                <strong>{money(subtotal)}</strong>
+              </p>
+              <p>
+                {t.tax}
+                <strong>{money(tax)}</strong>
+              </p>
+              {type === "DELIVERY" && (
+                <p>
+                  {t.fee}
+                  <strong>{money(delivery)}</strong>
+                </p>
+              )}
+              <p className="checkout-total">
+                {t.total}
+                <strong>{money(subtotal + tax + delivery)}</strong>
+              </p>
+            </div>
+          )}
+        </section>
+        {cart.items.length > 0 && (
+          <form className="checkout-form" onSubmit={submit}>
+            <h2>
+              {locale === "es"
+                ? "¿Cómo quieres recibirlo?"
+                : locale === "en"
+                  ? "How would you like it?"
+                  : "Wie möchtest du es erhalten?"}
+            </h2>
+            <div className="order-type">
+              <button
+                className={type === "PICKUP" ? "chosen" : ""}
+                type="button"
+                disabled={
+                  !!pricing &&
+                  (!pricing.pickupEnabled || !pricing.acceptingOrders)
+                }
+                onClick={() => setType("PICKUP")}
+              >
+                {t.pickup}
+              </button>
+              <button
+                className={type === "DELIVERY" ? "chosen" : ""}
+                type="button"
+                disabled={
+                  !!pricing &&
+                  (!pricing.deliveryEnabled || !pricing.acceptingOrders)
+                }
+                onClick={() => setType("DELIVERY")}
+              >
+                {t.delivery}
+              </button>
+            </div>
+            <label>
+              {t.name}
+              <input
+                required
+                minLength={2}
+                maxLength={120}
+                autoComplete="name"
+                value={form.customerName}
+                onChange={(e) => update("customerName", e.target.value)}
+              />
+            </label>
+            <label>
+              {t.email}
+              <input
+                required
+                type="email"
+                maxLength={254}
+                autoComplete="email"
+                value={form.customerEmail}
+                onChange={(e) => update("customerEmail", e.target.value)}
+              />
+            </label>
+            <label>
+              {t.phone}
+              <input
+                required
+                type="tel"
+                minLength={5}
+                maxLength={32}
+                autoComplete="tel"
+                value={form.customerPhone}
+                onChange={(e) => update("customerPhone", e.target.value)}
+              />
+            </label>
+            {type === "DELIVERY" && (
+              <>
+                <label>
+                  {t.address}
+                  <input
+                    required
+                    minLength={3}
+                    maxLength={180}
+                    autoComplete="street-address"
+                    value={form.line1}
+                    onChange={(e) => update("line1", e.target.value)}
+                  />
+                </label>
+                <div className="checkout-two">
+                  <label>
+                    {t.city}
+                    <input
+                      required
+                      minLength={2}
+                      autoComplete="address-level2"
+                      value={form.city}
+                      onChange={(e) => update("city", e.target.value)}
+                    />
+                  </label>
+                  <label>
+                    {t.postal}
+                    <input
+                      required
+                      minLength={3}
+                      autoComplete="postal-code"
+                      value={form.postalCode}
+                      onChange={(e) => update("postalCode", e.target.value)}
+                    />
+                  </label>
+                </div>
+                <button
+                  type="button"
+                  className="button button-primary"
+                  disabled={
+                    quoteBusy ||
+                    !form.line1 ||
+                    !form.city ||
+                    !form.postalCode ||
+                    !form.customerName
+                  }
+                  onClick={() => void verifyDelivery()}
+                >
+                  {locale === "es"
+                    ? "Comprobar cobertura y ruta"
+                    : locale === "en"
+                      ? "Check coverage and route"
+                      : "Abdeckung und Route prüfen"}
+                </button>
+                {quoteError && (
+                  <p role="alert" className="checkout-error">
+                    {quoteError}
+                  </p>
+                )}
+                {quote && (
+                  <p role="status">
+                    {quote.matchedAddress} · {quote.straightKm.toFixed(2)} km ·{" "}
+                    {(quote.routeMeters / 1000).toFixed(2)} km ({quote.mode}) ·{" "}
+                    {Math.round(quote.minSeconds / 60)}–
+                    {Math.round(quote.maxSeconds / 60)} min
+                  </p>
+                )}
+              </>
+            )}
+            <label>
+              {t.notes}
+              <textarea
+                maxLength={1000}
+                value={form.notes}
+                onChange={(e) => update("notes", e.target.value)}
+              />
+            </label>
+            {type === "DELIVERY" &&
+              pricing &&
+              subtotal < pricing.minDeliveryAmount && (
+                <p className="checkout-error" role="status">
+                  {t.minimum}
+                  {money(pricing.minDeliveryAmount)}
+                </p>
+              )}
+            {error && (
+              <p className="checkout-error" role="alert">
+                {error}
+              </p>
+            )}
+            {pricing && !pricing.acceptingOrders && (
+              <p role="alert" className="checkout-error">
+                {kitchenCopy[locale].closed}
+              </p>
+            )}
+            <p className="checkout-disclaimer">
+              {t.disclaimer}{" "}
+              <Link href="/login">
+                {locale === "es"
+                  ? "Iniciar sesión"
+                  : locale === "en"
+                    ? "Sign in"
+                    : "Anmelden"}
+              </Link>
+            </p>
+            <button
+              className="button button-primary checkout-submit"
+              disabled={
+                busy ||
+                !pricing?.acceptingOrders ||
+                (type === "DELIVERY" && !quote) ||
+                (type === "DELIVERY" &&
+                  !!pricing &&
+                  subtotal < pricing.minDeliveryAmount)
+              }
+            >
+              {busy ? t.placing : t.place}
+            </button>
+          </form>
+        )}
+      </div>
+    </main>
+  );
 }

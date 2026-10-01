@@ -2,25 +2,175 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { Activity, BellRing, ChefHat, CircleDollarSign, Clock3, Flame, Package, ShoppingBasket, Sparkles, UserRound, UsersRound, Workflow } from "lucide-react";
+import {
+  Activity,
+  BellRing,
+  ChefHat,
+  CircleDollarSign,
+  Clock3,
+  Flame,
+  Package,
+  ShoppingBasket,
+  Sparkles,
+  UserRound,
+  UsersRound,
+  Workflow,
+} from "lucide-react";
+import { kitchenCopy } from "@/lib/kitchen-copy";
 import type { Locale } from "@/lib/locale";
 import "../app/admin.css";
 
-type Summary = Awaited<ReturnType<typeof import("@/lib/admin-summary").getAdminSummary>>;
+type Summary = Awaited<
+  ReturnType<typeof import("@/lib/admin-summary").getAdminSummary>
+>;
 const copy = {
-  es: { eyebrow: "PANCHO VILLA · ADMINISTRACIÓN", title: "Resumen del negocio", desc: "Una mirada clara al ritmo de tu restaurante.", today: "Ventas pagadas hoy", orders: "Pedidos hoy", avg: "Ticket promedio", active: "Pedidos activos", clients: "Clientes", employees: "Empleados", products: "Productos activos", cancelled: "Cancelaciones hoy", noshow: "No recogidos", jobs: "Automatizaciones pendientes", failed: "Notificaciones fallidas", week: "Esta semana", top: "Más pedidos", demand: "Hora de más pedidos", kitchen: "Abrir cocina", menu: "Ver menú", manageProducts: "Gestionar productos", account: "Mi cuenta", automation: "Automatizaciones", noData: "Aún no hay pedidos en este periodo.", ai: "Resumen inteligente", aiLoading: "Interpretando métricas verificadas…", aiMissing: "Configura proveedor, modelo y AI_API_KEY para habilitar la interpretación. Las cifras visibles se calculan en PostgreSQL.", aiError: "El resumen IA no está disponible ahora.", aiOrders: "Pedidos hoy", aiActive: "Activos", aiCancel: "Cancelados", nav: "Administración" },
-  en: { eyebrow: "PANCHO VILLA · ADMIN", title: "Business overview", desc: "A clear view of your restaurant’s rhythm.", today: "Paid sales today", orders: "Orders today", avg: "Average ticket", active: "Active orders", clients: "Customers", employees: "Employees", products: "Active products", cancelled: "Cancellations today", noshow: "Uncollected", jobs: "Pending automations", failed: "Failed notifications", week: "This week", top: "Most ordered", demand: "Peak order hour", kitchen: "Open kitchen", menu: "View menu", manageProducts: "Manage products", account: "My account", automation: "Automations", noData: "No orders in this period yet.", ai: "Smart summary", aiLoading: "Interpreting verified metrics…", aiMissing: "Set up an AI provider, model and AI_API_KEY to enable interpretation. Visible figures are calculated in PostgreSQL.", aiError: "The AI summary is unavailable right now.", aiOrders: "Orders today", aiActive: "Active", aiCancel: "Cancelled", nav: "Administration" },
-  de: { eyebrow: "PANCHO VILLA · VERWALTUNG", title: "Geschäftsübersicht", desc: "Ein klarer Blick auf den Rhythmus deines Restaurants.", today: "Bezahlte Verkäufe heute", orders: "Bestellungen heute", avg: "Durchschnittsbon", active: "Aktive Bestellungen", clients: "Kunden", employees: "Mitarbeitende", products: "Aktive Produkte", cancelled: "Stornierungen heute", noshow: "Nicht abgeholt", jobs: "Ausstehende Automationen", failed: "Fehlgeschlagene Benachrichtigungen", week: "Diese Woche", top: "Am häufigsten bestellt", demand: "Stärkste Bestellzeit", kitchen: "Küche öffnen", menu: "Speisekarte", manageProducts: "Produkte verwalten", account: "Mein Konto", automation: "Automationen", noData: "In diesem Zeitraum gibt es noch keine Bestellungen.", ai: "Intelligente Übersicht", aiLoading: "Verifizierte Kennzahlen werden interpretiert…", aiMissing: "Konfiguriere KI-Anbieter, Modell und AI_API_KEY. Die sichtbaren Kennzahlen stammen aus PostgreSQL.", aiError: "Die KI-Zusammenfassung ist derzeit nicht verfügbar.", aiOrders: "Bestellungen heute", aiActive: "Aktiv", aiCancel: "Storniert", nav: "Verwaltung" },
+  es: {
+    eyebrow: "PANCHO VILLA · ADMINISTRACIÓN",
+    title: "Resumen del negocio",
+    desc: "Una mirada clara al ritmo de tu restaurante.",
+    today: "Ventas pagadas hoy",
+    orders: "Pedidos hoy",
+    avg: "Ticket promedio",
+    active: "Pedidos activos",
+    clients: "Clientes",
+    employees: "Empleados",
+    products: "Productos activos",
+    cancelled: "Cancelaciones hoy",
+    noshow: "No recogidos",
+    jobs: "Automatizaciones pendientes",
+    failed: "Notificaciones fallidas",
+    week: "Esta semana",
+    top: "Más pedidos",
+    demand: "Hora de más pedidos",
+    kitchen: "Abrir cocina",
+    menu: "Ver menú",
+    manageProducts: "Gestionar productos",
+    account: "Mi cuenta",
+    automation: "Automatizaciones",
+    noData: "Aún no hay pedidos en este periodo.",
+    ai: "Resumen inteligente",
+    aiLoading: "Interpretando métricas verificadas…",
+    aiMissing:
+      "Configura proveedor, modelo y AI_API_KEY para habilitar la interpretación. Las cifras visibles se calculan en PostgreSQL.",
+    aiError: "El resumen IA no está disponible ahora.",
+    aiOrders: "Pedidos hoy",
+    aiActive: "Activos",
+    aiCancel: "Cancelados",
+    nav: "Administración",
+  },
+  en: {
+    eyebrow: "PANCHO VILLA · ADMIN",
+    title: "Business overview",
+    desc: "A clear view of your restaurant’s rhythm.",
+    today: "Paid sales today",
+    orders: "Orders today",
+    avg: "Average ticket",
+    active: "Active orders",
+    clients: "Customers",
+    employees: "Employees",
+    products: "Active products",
+    cancelled: "Cancellations today",
+    noshow: "Uncollected",
+    jobs: "Pending automations",
+    failed: "Failed notifications",
+    week: "This week",
+    top: "Most ordered",
+    demand: "Peak order hour",
+    kitchen: "Open kitchen",
+    menu: "View menu",
+    manageProducts: "Manage products",
+    account: "My account",
+    automation: "Automations",
+    noData: "No orders in this period yet.",
+    ai: "Smart summary",
+    aiLoading: "Interpreting verified metrics…",
+    aiMissing:
+      "Set up an AI provider, model and AI_API_KEY to enable interpretation. Visible figures are calculated in PostgreSQL.",
+    aiError: "The AI summary is unavailable right now.",
+    aiOrders: "Orders today",
+    aiActive: "Active",
+    aiCancel: "Cancelled",
+    nav: "Administration",
+  },
+  de: {
+    eyebrow: "PANCHO VILLA · VERWALTUNG",
+    title: "Geschäftsübersicht",
+    desc: "Ein klarer Blick auf den Rhythmus deines Restaurants.",
+    today: "Bezahlte Verkäufe heute",
+    orders: "Bestellungen heute",
+    avg: "Durchschnittsbon",
+    active: "Aktive Bestellungen",
+    clients: "Kunden",
+    employees: "Mitarbeitende",
+    products: "Aktive Produkte",
+    cancelled: "Stornierungen heute",
+    noshow: "Nicht abgeholt",
+    jobs: "Ausstehende Automationen",
+    failed: "Fehlgeschlagene Benachrichtigungen",
+    week: "Diese Woche",
+    top: "Am häufigsten bestellt",
+    demand: "Stärkste Bestellzeit",
+    kitchen: "Küche öffnen",
+    menu: "Speisekarte",
+    manageProducts: "Produkte verwalten",
+    account: "Mein Konto",
+    automation: "Automationen",
+    noData: "In diesem Zeitraum gibt es noch keine Bestellungen.",
+    ai: "Intelligente Übersicht",
+    aiLoading: "Verifizierte Kennzahlen werden interpretiert…",
+    aiMissing:
+      "Konfiguriere KI-Anbieter, Modell und AI_API_KEY. Die sichtbaren Kennzahlen stammen aus PostgreSQL.",
+    aiError: "Die KI-Zusammenfassung ist derzeit nicht verfügbar.",
+    aiOrders: "Bestellungen heute",
+    aiActive: "Aktiv",
+    aiCancel: "Storniert",
+    nav: "Verwaltung",
+  },
 } satisfies Record<Locale, Record<string, string>>;
 
-export function AdminDashboard({ data, locale }: { data: Summary; locale: Locale }) {
+export function AdminDashboard({
+  data,
+  locale,
+}: {
+  data: Summary;
+  locale: Locale;
+}) {
   const t = copy[locale];
   const [aiText, setAiText] = useState("");
-  const [aiState, setAiState] = useState<"loading" | "ready" | "missing" | "error">("loading");
-  useEffect(() => { fetch("/api/ai/admin-summary", { cache: "no-store" }).then(async (response) => { const result = await response.json() as { analysis?: string; error?: string }; if (!response.ok) { setAiState(result.error === "AI_NOT_CONFIGURED" ? "missing" : "error"); return; } setAiText(result.analysis ?? ""); setAiState("ready"); }).catch(() => setAiState("error")); }, []);
-  const money = (amount: number) => new Intl.NumberFormat(locale, { style: "currency", currency: data.currency, maximumFractionDigits: 0 }).format(amount);
+  const [aiState, setAiState] = useState<
+    "loading" | "ready" | "missing" | "error"
+  >("loading");
+  useEffect(() => {
+    fetch("/api/ai/admin-summary", { cache: "no-store" })
+      .then(async (response) => {
+        const result = (await response.json()) as {
+          analysis?: string;
+          error?: string;
+        };
+        if (!response.ok) {
+          setAiState(
+            result.error === "AI_NOT_CONFIGURED" ? "missing" : "error",
+          );
+          return;
+        }
+        setAiText(result.analysis ?? "");
+        setAiState("ready");
+      })
+      .catch(() => setAiState("error"));
+  }, []);
+  const money = (amount: number) =>
+    new Intl.NumberFormat(locale, {
+      style: "currency",
+      currency: data.currency,
+      maximumFractionDigits: 0,
+    }).format(amount);
   const metricCards = [
-    { label: t.today, value: money(data.today.sales), icon: CircleDollarSign, className: "metric-money" },
+    {
+      label: t.today,
+      value: money(data.today.sales),
+      icon: CircleDollarSign,
+      className: "metric-money",
+    },
     { label: t.orders, value: data.today.orders, icon: ShoppingBasket },
     { label: t.avg, value: money(data.today.average), icon: Activity },
     { label: t.active, value: data.today.active, icon: Clock3 },
@@ -33,5 +183,170 @@ export function AdminDashboard({ data, locale }: { data: Summary; locale: Locale
     { label: t.failed, value: data.failedNotifications, icon: BellRing },
   ];
   const maxSales = Math.max(1, ...data.week.map((day) => day.sales));
-  return <main className="admin-page"><header className="admin-header"><Link className="admin-brand" href="/"><span className="brand-mark"><Flame size={18} /></span>PANCHO VILLA</Link><nav aria-label={t.nav}><Link href="/menu">{t.menu}</Link><Link href="/admin/productos">{t.manageProducts}</Link><Link href="/cocina">{t.kitchen}</Link><Link href="/admin/automatizaciones">{t.automation}</Link><Link href="/cuenta">{t.account}</Link></nav></header><section className="admin-intro"><div><p className="eyebrow">{t.eyebrow}</p><h1>{t.title}</h1><p>{t.desc}</p></div><div className="admin-illustration" aria-hidden="true"><span>PV</span><i /><i /><i /></div></section><section className="admin-metrics" aria-label={t.title}>{metricCards.map(({ label, value, icon: Icon, className }) => <article className={`admin-metric ${className ?? ""}`} key={label}><span><Icon size={18} /></span><p>{label}</p><strong>{value}</strong></article>)}</section><section className="admin-ai-card"><span><Sparkles size={19} /></span><div className="admin-ai-content"><p className="eyebrow">{t.ai}</p><p>{aiState === "loading" ? t.aiLoading : aiState === "ready" ? aiText : aiState === "missing" ? t.aiMissing : t.aiError}</p><div><small>{t.aiOrders}: <b>{data.today.orders}</b></small><small>{t.aiActive}: <b>{data.today.active}</b></small><small>{t.aiCancel}: <b>{data.today.cancelled}</b></small></div></div></section><div className="admin-lower"><section className="admin-panel"><div className="admin-panel-heading"><div><p className="eyebrow">{t.week}</p><h2>{t.week}</h2></div><strong>{money(data.week.reduce((sum, day) => sum + day.sales, 0))}</strong></div><div className="sales-chart" role="img" aria-label={t.week}>{data.week.map((day) => <div className="sales-day" key={day.date}><strong>{money(day.sales)}</strong><span className="sales-track"><i style={{ height: `${Math.max(6, (day.sales / maxSales) * 100)}%` }} /></span><small>{new Intl.DateTimeFormat(locale, { weekday: "short", timeZone: data.timezone }).format(new Date(`${day.date}T12:00:00`))}</small></div>)}</div>{data.week.every((day) => day.orders === 0) && <p className="admin-empty">{t.noData}</p>}</section><section className="admin-panel admin-side-panel"><div><p className="eyebrow">{t.top}</p><h2>{t.top}</h2></div>{data.topProducts.length ? <ol className="top-products">{data.topProducts.map((item, index) => <li key={item.name}><span>{String(index + 1).padStart(2, "0")}</span><b>{item.name}</b><strong>{item.quantity}</strong></li>)}</ol> : <p className="admin-empty">{t.noData}</p>}<div className="peak-hour"><Clock3 size={17} /><span>{t.demand}</span><strong>{data.peakHour === null ? "—" : `${String(data.peakHour).padStart(2, "0")}:00`}</strong></div></section></div><section className="admin-shortcuts"><Link href="/admin/productos"><Package size={17} />{t.products}</Link><Link href="/cocina"><ChefHat size={17} />{t.kitchen}</Link><Link href="/menu"><ShoppingBasket size={17} />{t.menu}</Link><Link href="/admin/automatizaciones"><Workflow size={17} />{t.automation}</Link><Link href="/cuenta"><UserRound size={17} />{t.account}</Link></section><p className="admin-footnote">{locale === "es" ? "Las ventas reflejan únicamente pagos marcados como pagados." : locale === "en" ? "Sales include only payments marked as paid." : "Umsätze enthalten nur als bezahlt markierte Zahlungen."}</p></main>;
+  return (
+    <main className="admin-page">
+      <header className="admin-header">
+        <Link className="admin-brand" href="/">
+          <span className="brand-mark">
+            <Flame size={18} />
+          </span>
+          PANCHO VILLA
+        </Link>
+        <nav aria-label={t.nav}>
+          <Link href="/menu">{t.menu}</Link>
+          <Link href="/admin/productos">{t.manageProducts}</Link>
+          <Link href="/admin/inventario">{kitchenCopy[locale].inventory}</Link>
+          <Link href="/admin/ventas">{kitchenCopy[locale].sales}</Link>
+          <Link href="/cocina">{t.kitchen}</Link>
+          <Link href="/admin/automatizaciones">{t.automation}</Link>
+          <Link href="/cuenta">{t.account}</Link>
+        </nav>
+      </header>
+      <section className="admin-intro">
+        <div>
+          <p className="eyebrow">{t.eyebrow}</p>
+          <h1>{t.title}</h1>
+          <p>{t.desc}</p>
+        </div>
+        <div className="admin-illustration" aria-hidden="true">
+          <span>PV</span>
+          <i />
+          <i />
+          <i />
+        </div>
+      </section>
+      <section className="admin-metrics" aria-label={t.title}>
+        {metricCards.map(({ label, value, icon: Icon, className }) => (
+          <article className={`admin-metric ${className ?? ""}`} key={label}>
+            <span>
+              <Icon size={18} />
+            </span>
+            <p>{label}</p>
+            <strong>{value}</strong>
+          </article>
+        ))}
+      </section>
+      <section className="admin-ai-card">
+        <span>
+          <Sparkles size={19} />
+        </span>
+        <div className="admin-ai-content">
+          <p className="eyebrow">{t.ai}</p>
+          <p>
+            {aiState === "loading"
+              ? t.aiLoading
+              : aiState === "ready"
+                ? aiText
+                : aiState === "missing"
+                  ? t.aiMissing
+                  : t.aiError}
+          </p>
+          <div>
+            <small>
+              {t.aiOrders}: <b>{data.today.orders}</b>
+            </small>
+            <small>
+              {t.aiActive}: <b>{data.today.active}</b>
+            </small>
+            <small>
+              {t.aiCancel}: <b>{data.today.cancelled}</b>
+            </small>
+          </div>
+        </div>
+      </section>
+      <div className="admin-lower">
+        <section className="admin-panel">
+          <div className="admin-panel-heading">
+            <div>
+              <p className="eyebrow">{t.week}</p>
+              <h2>{t.week}</h2>
+            </div>
+            <strong>
+              {money(data.week.reduce((sum, day) => sum + day.sales, 0))}
+            </strong>
+          </div>
+          <div className="sales-chart" role="img" aria-label={t.week}>
+            {data.week.map((day) => (
+              <div className="sales-day" key={day.date}>
+                <strong>{money(day.sales)}</strong>
+                <span className="sales-track">
+                  <i
+                    style={{
+                      height: `${Math.max(6, (day.sales / maxSales) * 100)}%`,
+                    }}
+                  />
+                </span>
+                <small>
+                  {new Intl.DateTimeFormat(locale, {
+                    weekday: "short",
+                    timeZone: data.timezone,
+                  }).format(new Date(`${day.date}T12:00:00`))}
+                </small>
+              </div>
+            ))}
+          </div>
+          {data.week.every((day) => day.orders === 0) && (
+            <p className="admin-empty">{t.noData}</p>
+          )}
+        </section>
+        <section className="admin-panel admin-side-panel">
+          <div>
+            <p className="eyebrow">{t.top}</p>
+            <h2>{t.top}</h2>
+          </div>
+          {data.topProducts.length ? (
+            <ol className="top-products">
+              {data.topProducts.map((item, index) => (
+                <li key={item.name}>
+                  <span>{String(index + 1).padStart(2, "0")}</span>
+                  <b>{item.name}</b>
+                  <strong>{item.quantity}</strong>
+                </li>
+              ))}
+            </ol>
+          ) : (
+            <p className="admin-empty">{t.noData}</p>
+          )}
+          <div className="peak-hour">
+            <Clock3 size={17} />
+            <span>{t.demand}</span>
+            <strong>
+              {data.peakHour === null
+                ? "—"
+                : `${String(data.peakHour).padStart(2, "0")}:00`}
+            </strong>
+          </div>
+        </section>
+      </div>
+      <section className="admin-shortcuts">
+        <Link href="/admin/productos">
+          <Package size={17} />
+          {t.products}
+        </Link>
+        <Link href="/cocina">
+          <ChefHat size={17} />
+          {t.kitchen}
+        </Link>
+        <Link href="/menu">
+          <ShoppingBasket size={17} />
+          {t.menu}
+        </Link>
+        <Link href="/admin/automatizaciones">
+          <Workflow size={17} />
+          {t.automation}
+        </Link>
+        <Link href="/cuenta">
+          <UserRound size={17} />
+          {t.account}
+        </Link>
+      </section>
+      <p className="admin-footnote">
+        {locale === "es"
+          ? "Las ventas reflejan únicamente pagos marcados como pagados."
+          : locale === "en"
+            ? "Sales include only payments marked as paid."
+            : "Umsätze enthalten nur als bezahlt markierte Zahlungen."}
+      </p>
+    </main>
+  );
 }

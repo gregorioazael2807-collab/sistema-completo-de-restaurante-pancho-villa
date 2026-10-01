@@ -95,3 +95,10 @@ cerrado. Consulta [docs/automation-ai.md](docs/automation-ai.md) para los límit
 La prueba `RUN_JOURNEY_WRITE_TESTS=1 npx playwright test tests/e2e/customer-journey.spec.ts`
 comprueba persistencia, lectura, contexto actualizado y aislamiento entre cuentas.
 Crea y elimina dos usuarios y un pedido temporales, sin trabajos de correo.
+
+## Ampliación de cocina en copia independiente
+
+Esta rama local amplía cocina, inventario, turnos y ventas. Consulta
+[la guía de implementación, límites y pruebas](docs/kitchen-operations.md).
+La copia se ejecuta con `npm run dev:kitchen` en el puerto 3005 y
+`npm run kitchen:scheduler` para alertas periódicas; no se ha combinado con main ni subido a GitHub.

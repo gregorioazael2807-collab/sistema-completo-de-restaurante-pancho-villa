@@ -7,6 +7,38 @@ import type { Role } from "@prisma/client";
 export const { handlers, auth, signIn, signOut } = NextAuth({
   secret: process.env.AUTH_SECRET,
   trustHost: true,
+  ...(process.env.AUTH_COOKIE_NAME
+    ? {
+        cookies: {
+          sessionToken: {
+            name: process.env.AUTH_COOKIE_NAME,
+            options: {
+              httpOnly: true,
+              sameSite: "lax" as const,
+              path: "/",
+              secure: process.env.NODE_ENV === "production",
+            },
+          },
+          csrfToken: {
+            name: `${process.env.AUTH_COOKIE_NAME}.csrf`,
+            options: {
+              httpOnly: true,
+              sameSite: "lax" as const,
+              path: "/",
+              secure: process.env.NODE_ENV === "production",
+            },
+          },
+          callbackUrl: {
+            name: `${process.env.AUTH_COOKIE_NAME}.callback`,
+            options: {
+              sameSite: "lax" as const,
+              path: "/",
+              secure: process.env.NODE_ENV === "production",
+            },
+          },
+        },
+      }
+    : {}),
   session: { strategy: "jwt", maxAge: 7 * 24 * 60 * 60 },
   pages: { signIn: "/login" },
   providers: [
