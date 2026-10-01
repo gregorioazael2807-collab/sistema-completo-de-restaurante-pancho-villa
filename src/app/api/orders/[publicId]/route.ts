@@ -37,11 +37,13 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ pu
   if (body.status === "NO_PRESENTADO" && access.actor.role !== "ADMIN") return Response.json({ error: "FORBIDDEN" }, { status: 403 });
   try {
     const result = await db.$transaction(async (tx) => {
-      const order = await tx.order.findUnique({ where: { publicId }, select: { id: true, status: true, customerEmail: true, customerLocale: true, userId: true } });
+      const order = await tx.order.findUnique({ where: { publicId }, select: { id: true, status: true, type: true, customerEmail: true, customerLocale: true, userId: true } });
       if (!order) return { error: "NOT_FOUND" as const };
       if (!transitions[order.status].includes(body.status)) return { error: "INVALID_TRANSITION" as const };
+      if ((body.status === "EN_CAMINO" && order.type !== "DELIVERY") || (body.status === "NO_PRESENTADO" && order.type !== "PICKUP")) return { error: "INVALID_TRANSITION" as const };
       const changed = await tx.order.updateMany({ where: { id: order.id, status: order.status }, data: { status: body.status } });
       if (changed.count !== 1) return { error: "CONFLICT" as const };
+      if (order.userId) await tx.customerNotice.create({ data: { userId: order.userId, orderId: order.id, eventKey: `order-status:${order.id}:${body.status}`, status: body.status } });
       await tx.orderStatusHistory.create({ data: { orderId: order.id, from: order.status, to: body.status, changedBy: access.actor.id } });
       await tx.automationJob.create({ data: { dedupeKey: `order-status:${order.id}:${body.status}`, orderId: order.id, kind: "ORDER_STATUS_CHANGED", payload: { publicId, status: body.status, recipient: order.customerEmail, locale: order.customerLocale, notificationDedupeKey: `order-status:${order.id}:${body.status}` } } });
       await tx.notification.create({ data: { dedupeKey: `order-status:${order.id}:${body.status}`, orderId: order.id, userId: order.userId, type: `ORDER_${body.status}`, recipient: order.customerEmail, locale: order.customerLocale } });

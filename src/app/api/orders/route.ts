@@ -69,7 +69,7 @@ export async function POST(request: Request) {
     const created = await db.$transaction(async (tx) => {
       const [settings, products, user] = await Promise.all([
         tx.restaurantSettings.findFirst(),
-        tx.product.findMany({ where: { id: { in: [...new Set(data.items.map((item) => item.productId))] }, available: true }, include: { translations: true, modifierGroups: { include: { group: { include: { modifiers: { where: { available: true }, include: { translations: true } }, translations: true } } } } } }),
+        tx.product.findMany({ where: { id: { in: [...new Set(data.items.map((item) => item.productId))] }, available: true, category: { active: true } }, include: { translations: true, modifierGroups: { where: { group: { active: true } }, include: { group: { include: { modifiers: { where: { available: true }, include: { translations: true } }, translations: true } } } } } }),
         userId ? tx.user.findUnique({ where: { id: userId }, select: { id: true, active: true, customer: { select: { id: true } } } }) : null,
       ]);
       if (!settings?.acceptingOrders) throw new Error("ORDERS_CLOSED");
@@ -131,6 +131,7 @@ export async function POST(request: Request) {
               priceDelta: centsToDecimal(modifier.priceDelta),
             })) },
           })) },
+          ...(user?.id ? { customerNotices: { create: { userId: user.id, eventKey: `order-created:${data.idempotencyKey}`, status: "NUEVO" as const } } } : {}),
           statusHistory: { create: { to: "NUEVO", note: "Order placed" } },
           payment: { create: { amount: centsToDecimal(totals.totalCents), currency: settings.currency, status: "PAYMENT_PENDING" } },
           automationJobs: { create: { dedupeKey: `order-created:${data.idempotencyKey}`, kind: "ORDER_CREATED", payload: { publicId, notifyEmail: data.customerEmail, locale: data.locale, notificationDedupeKey: `order-confirmation:${data.idempotencyKey}` } } },

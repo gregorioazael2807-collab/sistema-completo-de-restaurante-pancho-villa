@@ -1,0 +1,14 @@
+import { expect,test,vi,beforeEach } from "vitest";
+const mocks=vi.hoisted(()=>({messages:vi.fn(),notices:vi.fn(),count:vi.fn(),orders:vi.fn(),save:vi.fn(),access:vi.fn(),read:vi.fn()}));
+vi.mock("@/lib/db",()=>({db:{assistantMessage:{findMany:mocks.messages,createMany:mocks.save},customerNotice:{findMany:mocks.notices,count:mocks.count,updateMany:mocks.read}}}));
+vi.mock("@/lib/assistant-orders",()=>({getAssistantOrders:mocks.orders}));
+vi.mock("@/lib/access",()=>({requireRole:mocks.access}));
+import { getJourney,saveExchange,chatRequest } from "@/lib/customer-journey";
+import { PATCH } from "@/app/api/ai/journey/route";
+import { noticeText } from "@/lib/journey-copy";
+beforeEach(()=>{vi.clearAllMocks();mocks.orders.mockResolvedValue([]);mocks.messages.mockResolvedValue([]);mocks.notices.mockResolvedValue([]);mocks.count.mockResolvedValue(0);mocks.access.mockResolvedValue({actor:{id:"customer-a"}});});
+test("all journey data is scoped to the authenticated customer",async()=>{await getJourney("customer-a");expect(mocks.messages.mock.calls[0][0].where).toEqual({userId:"customer-a"});expect(mocks.notices.mock.calls[0][0].where).toEqual({userId:"customer-a"});expect(mocks.count.mock.calls[0][0].where).toEqual({userId:"customer-a",readAt:null});expect(mocks.orders).toHaveBeenCalledWith("customer-a");});
+test("exchange is stored atomically and duplicate requests are skipped",async()=>{await saveExchange("customer-a","request","hello","reply");const saved=mocks.save.mock.calls[0][0];expect(saved.skipDuplicates).toBe(true);expect(saved.data.map((row:{role:string;userId:string;requestId:string})=>[row.role,row.userId,row.requestId])).toEqual([["user","customer-a","request"],["assistant","customer-a","request"]]);});
+test("notice acknowledgements cannot update another customer's notices",async()=>{const result=await PATCH(new Request("http://localhost/api/ai/journey",{method:"PATCH",body:JSON.stringify({ids:["other-customer-notice"]}),headers:{"content-type":"application/json"}}));expect(result?.status).toBe(200);expect(mocks.read.mock.calls[0][0].where).toEqual({userId:"customer-a",id:{in:["other-customer-notice"]},readAt:null});});
+test("basket context rejects client-supplied quantities beyond checkout limits",()=>{expect(chatRequest.safeParse({message:"hello",cartItems:[{productId:"taco",quantity:21}]}).success).toBe(false);});
+test("ready notices distinguish pickup from delivery",()=>{expect(noticeText("es",{status:"LISTO",order:{publicId:"MX-TEST",type:"DELIVERY"}})).toContain("listo para reparto");expect(noticeText("es",{status:"LISTO",order:{publicId:"MX-TEST",type:"PICKUP"}})).toContain("listo para recoger");});

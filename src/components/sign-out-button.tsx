@@ -8,7 +8,7 @@ export function SignOutButton({ locale = "es" }: { locale?: Locale }) {
     <button
       className="button button-outline"
       type="button"
-      onClick={() => signOut({ callbackUrl: "/" })}
+      onClick={() => { window.dispatchEvent(new Event("pancho-session-change")); void signOut({ callbackUrl: "/" }); }}
     >
       {locale === "es" ? "Cerrar sesión" : locale === "en" ? "Sign out" : "Abmelden"}
     </button>

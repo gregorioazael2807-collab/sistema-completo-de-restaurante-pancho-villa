@@ -7,8 +7,8 @@ Aplicación web de pedidos para un restaurante mexicano, creada como proyecto in
 - Portada mexicana responsive y catálogo público PostgreSQL con siete categorías, 21 productos, traducciones ES/EN/DE, fotos locales y opciones/extras.
 - Registro de clientes, login Auth.js, contraseñas bcrypt, rate limits en PostgreSQL, roles ADMIN/COCINA/EMPLEADO/CLIENTE, recuperación de contraseña con enlace de un uso e invalidación de sesiones anteriores.
 - Carrito local, recogida o entrega, validación de checkout Zod en servidor, precios/extras recalculados en transacción serializable, importes en céntimos, idempotencia, pago pendiente, outbox y seguimiento por identificador aleatorio.
-- Cocina protegida por rol con cambios persistentes, historial y actualización periódica; dashboard ADMIN con métricas, gestión administrativa de precio/disponibilidad/destacado de producto y vista de automatizaciones.
-- Asistente cliente conectado al menú y a los pedidos propios; solo propone productos, no ejecuta cargos/cancelaciones. El endpoint ADMIN de resumen obtiene métricas del backend y limita la interpretación de IA a esos datos.
+- Cocina protegida por rol con cambios persistentes, historial y actualización periódica; dashboard ADMIN con métricas, gestión administrativa de platos, categorías, grupos de extras, opciones, traducciones y fotografías y vista de automatizaciones.
+- Asistente cliente con conversación persistente por cuenta y contexto actualizado de menú, carrito y pedidos propios. Panel compartido y avisos persistentes en menú, carrito, cuenta y seguimiento, con actualización cada siete segundos. Solo propone productos, no ejecuta cargos/cancelaciones. El endpoint ADMIN de resumen obtiene métricas del backend y limita la interpretación de IA a esos datos.
 - Correos de pedido, cambios de estado y recuperación mediante Resend/outbox con deduplicación, reintentos escalonados y reintento manual. `vercel.json` agenda el worker cada minuto.
 
 ## Inicio local
@@ -26,10 +26,10 @@ El test E2E de flujo real crea clientes y pedidos; apúntalo solo a una base des
 ## Servicios externos y límites actuales
 
 - **Correo:** configurar `RESEND_API_KEY`, un dominio verificado en Resend y `EMAIL_FROM` con remitente autorizado. La pantalla solo informa si las variables existen; eso no prueba que Resend acepte el dominio. Los pedidos sobreviven a fallos del correo y el worker reintenta hasta cinco veces.
-- **IA:** configurar `AI_API_KEY`, `AI_BASE_URL` (por ejemplo, `https://api.openai.com/v1`) y `AI_MODEL`. Sin ellas, catálogo, cuentas, pedidos y cocina siguen funcionando y el asistente explica que está sin configurar.
+- **IA:** configurar `AI_API_KEY`, `AI_BASE_URL` (por ejemplo, `https://api.openai.com/v1`) y `AI_MODEL`. Sin ellas, el asistente conserva consultas de estado y orientación básica, y explica que las recomendaciones de IA no están configuradas. Los avisos operativos funcionan independientemente del modelo.
 - **PostgreSQL:** hace falta una instancia propia para persistencia local/de producción. El seed y la migración no se ejecutan automáticamente en Vercel.
 - **Pagos:** solo se crean pagos `PAYMENT_PENDING`; no hay proveedor integrado ni se procesan tarjetas. El checkout nunca pide PAN/CVV.
-- **Recordatorios previos al pedido:** pendientes; todavía no se puede elegir una hora futura de recogida/entrega. Cancelaciones de pedido desde el cliente, cupones/descuentos, catálogo CRUD completo, gestión de empleados/horarios, control geográfico del reparto y sincronización en tiempo real por push también quedan fuera de esta entrega. KDS consulta cada siete segundos.
+- **Recordatorios previos al pedido:** pendientes; todavía no se puede elegir una hora futura de recogida/entrega. Cancelaciones de pedido desde el cliente, cupones/descuentos, gestión de empleados/horarios, control geográfico del reparto y sincronización en tiempo real por push también quedan fuera de esta entrega. KDS consulta cada siete segundos.
 - **Estadísticas de ventas:** suman únicamente pagos marcados `PAID`. Como el proveedor de pagos no está integrado, los pedidos nuevos permanecen pendientes y no se cuentan como ventas cobradas.
 
 ## Comprobaciones
@@ -52,7 +52,46 @@ El test E2E de flujo real crea clientes y pedidos; apúntalo solo a una base des
 - `http://localhost:3004/pedido/MX-...` — seguimiento de un pedido real
 - `http://localhost:3004/cocina` — KDS (ADMIN/COCINA)
 - `http://localhost:3004/admin` — dashboard (ADMIN)
-- `http://localhost:3004/admin/productos` — precio/disponibilidad (ADMIN)
+- `http://localhost:3004/admin/productos` — catálogo, extras y fotografías (ADMIN)
 - `http://localhost:3004/admin/automatizaciones` — outbox y estado del correo (ADMIN)
 
 Consulta [docs/architecture.md](docs/architecture.md) para el diseño del esquema, seguridad y límites REST.
+
+## Correos automáticos en este Mac
+
+La tarea de macOS `com.panchovilla.outbox` ejecuta `scripts/process-local-outbox.mjs` cada 60 segundos y al iniciar sesión. Lee las credenciales de `.env` en cada ejecución y llama exclusivamente al endpoint local autenticado. Necesita que el Mac esté despierto, la sesión iniciada, PostgreSQL y Pancho Villa en el puerto 3004 estén funcionando, y haya conexión a Internet. No inicia esos servicios por sí misma.
+
+- Configuración de la tarea: `~/Library/LaunchAgents/com.panchovilla.outbox.plist`.
+- Registros sin claves ni contenido de mensajes: `~/Library/Logs/PanchoVilla/outbox.log` y `outbox-error.log`.
+- Estado: `launchctl print gui/$(id -u)/com.panchovilla.outbox`.
+- Desactivar: `launchctl bootout gui/$(id -u) ~/Library/LaunchAgents/com.panchovilla.outbox.plist`.
+- Reactivar: `launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.panchovilla.outbox.plist`.
+
+Los envíos aceptados por Resend se marcan como completados; eso no confirma su entrega en la bandeja del destinatario. Los reintentos y la prevención de duplicados siguen a cargo de la cola existente. Los enlaces de los correos usan `NEXTAUTH_URL`; antes de usarlos con clientes externos debe configurarse la URL pública de la aplicación.
+
+## Gestión del catálogo desde la app
+
+En `/admin/productos`, ADMIN puede crear y editar platos, categorías, grupos de
+extras y extras individuales. Permite asignar categorías y grupos a cada plato,
+modificar precios, ingredientes y alérgenos, mantener traducciones ES/EN/DE y
+seleccionar fotos existentes o subir JPG/PNG/WebP de hasta 5 MB. Retirar un
+elemento lo desactiva sin borrar pedidos anteriores; se puede reactivar editándolo.
+Las subidas se convierten a WebP y se guardan en `.data/catalog-photos`. Incluir
+esta carpeta en backups. Antes de desplegar en un entorno con disco efímero,
+conectar almacenamiento persistente para las fotos.
+
+La prueba `RUN_CATALOG_WRITE_TESTS=1 npx playwright test tests/e2e/catalog-admin.spec.ts`
+crea y elimina únicamente sus propios elementos temporales; no crea pedidos ni
+envía correos. Requiere base local accesible, app activa y `AUTH_SECRET`.
+
+## Conversación y avisos del cliente
+
+La migración `0003_customer_journey` añade mensajes y avisos sin sustituir tablas
+existentes. `/api/ai/journey` permite consultar y marcar como leídos solo los datos
+de la cuenta autenticada. Los avisos quedan guardados aunque el cliente cambie de
+pantalla o cierre la app; se muestran al volver. No hay web push con el navegador
+cerrado. Consulta [docs/automation-ai.md](docs/automation-ai.md) para los límites.
+
+La prueba `RUN_JOURNEY_WRITE_TESTS=1 npx playwright test tests/e2e/customer-journey.spec.ts`
+comprueba persistencia, lectura, contexto actualizado y aislamiento entre cuentas.
+Crea y elimina dos usuarios y un pedido temporales, sin trabajos de correo.

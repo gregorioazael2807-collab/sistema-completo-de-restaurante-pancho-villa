@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Image from "next/image";
+import photoCredits from "@/lib/menu-photo-credits.json";
 import Link from "next/link";
 import { ArrowRight, Flame, LoaderCircle, Search, ShoppingBag } from "lucide-react";
 import { normalizeLocalePreference, type Locale } from "@/lib/locale";
@@ -130,6 +131,7 @@ const allergenNames: Record<string, Record<Locale, string>> = {
   egg: { es: "huevo", en: "egg", de: "Ei" },
 };
 const allowedImages = new Set([
+  ...photoCredits.map((photo) => photo.src),
   "/menu/tacos-photo.jpg",
   "/menu/burrito-photo.jpg",
   "/menu/quesadilla-photo.jpg",
@@ -154,7 +156,7 @@ function ProductCard({
 }) {
   const [selectedModifiers, setSelectedModifiers] = useState<{ id: string; name: string; priceDelta: number }[]>([]);
   const image =
-    product.image && allowedImages.has(product.image.src)
+    product.image && (allowedImages.has(product.image.src) || /^\/api\/catalog\/photos\/[a-f0-9-]{36}\.webp$/.test(product.image.src))
       ? product.image
       : null;
   const price = new Intl.NumberFormat(locale, {
@@ -175,6 +177,7 @@ function ProductCard({
           <Image
             src={image.src}
             alt={image.alt}
+            title={photoCredits.find((photo) => photo.src === image.src)?.credit}
             fill
             sizes="(max-width: 700px) 100vw, (max-width: 1000px) 50vw, 33vw"
           />

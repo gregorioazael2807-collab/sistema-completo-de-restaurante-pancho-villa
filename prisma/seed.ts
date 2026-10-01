@@ -37,7 +37,7 @@ const products = [
     ingredients: ["cerdo", "piña", "cebolla", "cilantro", "maíz"],
     allergens: [],
     price: "12.50",
-    image: "/menu/tacos-photo.jpg",
+    image: "/menu/tacos-al-pastor.jpg",
     alt: tr(
       "Tacos con piña y cilantro",
       "Tacos with pineapple and coriander",
@@ -61,7 +61,7 @@ const products = [
     ingredients: ["ternera", "tomate", "cebolla", "cilantro", "maíz"],
     allergens: [],
     price: "13.90",
-    image: "/menu/tacos-photo.jpg",
+    image: "/menu/tacos-carne-asada.jpg",
     alt: tr(
       "Tacos de carne a la parrilla",
       "Grilled steak tacos",
@@ -80,7 +80,7 @@ const products = [
     ingredients: ["pollo", "aguacate", "col", "crema", "maíz"],
     allergens: ["milk"],
     price: "11.90",
-    image: "/menu/tacos-photo.jpg",
+    image: "/menu/tacos-pollo.jpg",
     alt: tr(
       "Tacos de pollo con aguacate",
       "Chicken tacos with avocado",
@@ -99,7 +99,7 @@ const products = [
     ingredients: ["trigo", "frijoles", "arroz", "tomate", "aguacate"],
     allergens: ["gluten"],
     price: "13.90",
-    image: "/menu/burrito-photo.jpg",
+    image: "/menu/burrito-norteno.jpg",
     alt: tr(
       "Burrito relleno de frijoles y aguacate",
       "Burrito filled with beans and avocado",
@@ -119,7 +119,7 @@ const products = [
     ingredients: ["pollo", "arroz", "frijoles", "tomatillo", "trigo"],
     allergens: ["gluten"],
     price: "12.90",
-    image: "/menu/burrito-photo.jpg",
+    image: "/menu/burrito-pollo.jpg",
     alt: tr(
       "Burrito de pollo con salsa verde",
       "Chicken burrito with green salsa",
@@ -138,7 +138,7 @@ const products = [
     ingredients: ["pimiento", "frijoles", "arroz", "maíz", "aguacate", "trigo"],
     allergens: ["gluten"],
     price: "11.90",
-    image: "/menu/burrito-photo.jpg",
+    image: "/menu/burrito-verduras.jpg",
     alt: tr(
       "Burrito de verduras con guacamole",
       "Vegetable burrito with guacamole",
@@ -157,7 +157,7 @@ const products = [
     ingredients: ["maíz", "queso", "tomatillo"],
     allergens: ["milk"],
     price: "9.80",
-    image: "/menu/quesadilla-photo.jpg",
+    image: "/menu/quesadilla-maiz.jpg",
     alt: tr(
       "Quesadilla de maíz con queso fundido",
       "Corn quesadilla with melted cheese",
@@ -177,7 +177,7 @@ const products = [
     ingredients: ["setas", "queso oaxaca", "epazote", "maíz"],
     allergens: ["milk"],
     price: "10.50",
-    image: "/menu/quesadilla-photo.jpg",
+    image: "/menu/quesadilla-hongos.jpg",
     alt: tr(
       "Quesadilla dorada de hongos",
       "Golden mushroom quesadilla",
@@ -200,7 +200,7 @@ const products = [
     ingredients: ["pollo", "queso", "tomate", "cebolla", "maíz"],
     allergens: ["milk"],
     price: "11.40",
-    image: "/menu/quesadilla-photo.jpg",
+    image: "/menu/quesadilla-pollo.jpg",
     alt: tr(
       "Quesadilla de pollo con queso",
       "Chicken and cheese quesadilla",
@@ -219,7 +219,7 @@ const products = [
     ingredients: ["pollo", "tomatillo", "queso", "crema", "maíz"],
     allergens: ["milk"],
     price: "14.50",
-    image: "/menu/specialities-photo.jpg",
+    image: "/menu/enchiladas-verdes.jpg",
     alt: tr(
       "Enchiladas verdes servidas con salsa",
       "Green enchiladas with salsa",
@@ -238,7 +238,7 @@ const products = [
     ingredients: ["chile guajillo", "pollo", "crema", "maíz"],
     allergens: ["milk"],
     price: "14.50",
-    image: "/menu/specialities-photo.jpg",
+    image: "/menu/enchiladas-rojas.jpg",
     alt: tr(
       "Enchiladas rojas con crema",
       "Red enchiladas with crema",
@@ -257,7 +257,7 @@ const products = [
     ingredients: ["chile poblano", "queso", "arroz", "frijoles"],
     allergens: ["milk"],
     price: "15.20",
-    image: "/menu/specialities-photo.jpg",
+    image: "/menu/chile-relleno.jpg",
     alt: tr(
       "Chile poblano relleno",
       "Stuffed poblano pepper",
@@ -276,7 +276,7 @@ const products = [
     ingredients: ["maíz", "frijoles", "tomate", "queso"],
     allergens: ["milk"],
     price: "8.90",
-    image: "/menu/starters-photo.jpg",
+    image: "/menu/nachos-casa.jpg",
     alt: tr(
       "Totopos con frijoles y queso",
       "Tortilla chips with beans and cheese",
@@ -299,7 +299,7 @@ const products = [
     ingredients: ["aguacate", "lima", "cilantro", "maíz"],
     allergens: [],
     price: "7.50",
-    image: "/menu/starters-photo.jpg",
+    image: "/menu/guacamole-totopos.jpg",
     alt: tr(
       "Guacamole fresco con totopos",
       "Fresh guacamole with chips",
@@ -318,7 +318,7 @@ const products = [
     ingredients: ["maíz", "lima", "queso", "chile"],
     allergens: ["milk"],
     price: "6.50",
-    image: "/menu/starters-photo.jpg",
+    image: "/menu/elote-asado.jpg",
     alt: tr(
       "Elote a la parrilla con queso",
       "Grilled corn with cheese",
@@ -337,7 +337,7 @@ const products = [
     ingredients: ["huevo", "leche", "vainilla", "azúcar"],
     allergens: ["egg", "milk"],
     price: "5.90",
-    image: "/menu/dessert-photo.jpg",
+    image: "/menu/flan-caramelo.jpg",
     alt: tr(
       "Flan de vainilla con caramelo",
       "Vanilla flan with caramel",
@@ -360,7 +360,7 @@ const products = [
     ingredients: ["trigo", "azúcar", "chocolate"],
     allergens: ["gluten", "milk"],
     price: "6.20",
-    image: "/menu/dessert-photo.jpg",
+    image: "/menu/churros-chocolate.jpg",
     alt: tr(
       "Churros con azúcar y chocolate",
       "Churros with sugar and chocolate",
@@ -379,7 +379,7 @@ const products = [
     ingredients: ["arroz", "leche", "canela", "naranja"],
     allergens: ["milk"],
     price: "5.50",
-    image: "/menu/dessert-photo.jpg",
+    image: "/menu/arroz-leche.jpg",
     alt: tr(
       "Arroz con leche y canela",
       "Rice pudding with cinnamon",
@@ -402,7 +402,7 @@ const products = [
     ingredients: ["flor de jamaica", "lima", "agua"],
     allergens: [],
     price: "4.20",
-    image: "/menu/drinks-photo.jpg",
+    image: "/menu/agua-jamaica.jpg",
     alt: tr(
       "Agua fresca de jamaica",
       "Hibiscus agua fresca",
@@ -421,7 +421,7 @@ const products = [
     ingredients: ["arroz", "canela", "vainilla", "leche"],
     allergens: ["milk"],
     price: "4.20",
-    image: "/menu/drinks-photo.jpg",
+    image: "/menu/horchata.jpg",
     alt: tr(
       "Vaso de horchata con canela",
       "Glass of horchata with cinnamon",
@@ -444,7 +444,7 @@ const products = [
     ingredients: ["lima", "agua con gas", "hierbabuena"],
     allergens: [],
     price: "4.50",
-    image: "/menu/drinks-photo.jpg",
+    image: "/menu/limonada-casa.jpg",
     alt: tr(
       "Limonada de lima con hierbabuena",
       "Limeade with mint",

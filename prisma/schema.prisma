@@ -85,6 +85,8 @@ model User {
   orders              Order[]
   notifications       Notification[]
   aiAuditEvents       AIAuditEvent[]
+  assistantMessages   AssistantMessage[]
+  customerNotices     CustomerNotice[]
   accounts            Account[]
   sessions            Session[]
   passwordResetTokens PasswordResetToken[]
@@ -376,6 +378,7 @@ model Order {
   payment             Payment?
   notifications       Notification[]
   automationJobs      AutomationJob[]
+  customerNotices     CustomerNotice[]
   createdAt           DateTime             @default(now())
   updatedAt           DateTime             @updatedAt
 
@@ -516,4 +519,33 @@ model RestaurantSettings {
   acceptingOrders      Boolean  @default(true)
   estimatedPrepMinutes Int      @default(25)
   updatedAt            DateTime @updatedAt
+}
+
+model AssistantMessage {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  requestId String
+  role      String   @db.VarChar(10)
+  content   String   @db.Text
+  metadata  Json?
+  createdAt DateTime @default(now())
+
+  @@unique([userId, requestId, role])
+  @@index([userId, createdAt])
+}
+
+model CustomerNotice {
+  id        String      @id @default(cuid())
+  userId    String
+  user      User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  orderId   String
+  order     Order       @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  eventKey  String
+  status    OrderStatus
+  readAt    DateTime?
+  createdAt DateTime    @default(now())
+
+  @@unique([userId, eventKey])
+  @@index([userId, readAt, createdAt])
 }

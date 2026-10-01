@@ -10,6 +10,8 @@ import "./recovery.css";
 import "./account.css";
 import "./automation.css";
 import "./products.css";
+import "./journey.css";
+import { JourneyProvider } from "@/components/customer-journey";
 import { CartProvider } from "@/components/cart-provider";
 
 export const metadata: Metadata = {
@@ -23,7 +25,7 @@ export default function RootLayout({
 }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="es">
-      <body><CartProvider>{children}</CartProvider></body>
+      <body><CartProvider><JourneyProvider>{children}</JourneyProvider></CartProvider></body>
     </html>
   );
 }

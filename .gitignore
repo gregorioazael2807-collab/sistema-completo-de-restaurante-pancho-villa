@@ -10,3 +10,5 @@ test-results
 !config.example.txt
 *.tsbuildinfo
 *.log
+
+.data/catalog-photos/
