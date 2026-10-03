@@ -1,5 +1,7 @@
 # Pancho Villa
 
+> Integración local de la web original con cocina: consulta [docs/integracion-original.md](docs/integracion-original.md). Web y comandas comparten los pedidos originales en el puerto 3004, con sesiones independientes. No se ha publicado todavía esta integración.
+
 Aplicación web de pedidos para un restaurante mexicano, creada como proyecto independiente; BookFlow no se modifica. Usa Next.js, React, TypeScript, Tailwind CSS, Auth.js, Zod, Prisma y PostgreSQL.
 
 ## Implementado y comprobado
