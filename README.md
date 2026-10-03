@@ -1,4 +1,4 @@
-# Pancho Villa
+# Sistema completo de restaurante Pancho Villa
 
 > Integración local de la web original con cocina: consulta [docs/integracion-original.md](docs/integracion-original.md). Web y comandas comparten los pedidos originales en el puerto 3004, con sesiones independientes. No se ha publicado todavía esta integración.
 
