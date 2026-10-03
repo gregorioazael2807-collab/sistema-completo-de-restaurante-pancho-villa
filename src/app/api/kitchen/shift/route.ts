@@ -2,7 +2,7 @@ import { requireRole } from "@/lib/access";
 import { shiftAction, shiftRequest } from "@/lib/kitchen-shifts";
 import { operationError } from "@/lib/kitchen-transaction";
 export async function POST(request: Request) {
-  const access = await requireRole(["ADMIN", "COCINA"]);
+  const access = await requireRole(["ADMIN"]);
   if ("response" in access) return access.response;
   const parsed = shiftRequest.safeParse(await request.json().catch(() => null));
   if (!parsed.success)

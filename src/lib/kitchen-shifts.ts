@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { serializable } from "@/lib/kitchen-transaction";
+import { dailySalesWindow, summarizeDailySales } from "@/lib/kitchen-daily-sales";
 export const shiftRequest = z.discriminatedUnion("action", [
   z.object({
     action: z.literal("OPEN"),
@@ -81,6 +82,12 @@ export async function shiftAction(
         where: { shiftId: shift.id },
         include: { items: true },
       });
+      const { start } = dailySalesWindow(now, settings.timezone);
+      const soldToday = await tx.order.findMany({
+        where: { status: "ENTREGADO", deliveredAt: { gte: start, lte: now } },
+        include: { items: { include: { modifiers: true } } },
+      });
+      const dailySales = summarizeDailySales(soldToday, now, settings.timezone);
       const completed = orders.filter((o) => o.readyAt);
       const times = completed
         .filter((o) => o.preparationStartedAt)
@@ -134,6 +141,7 @@ export async function shiftAction(
               : null,
             stationLoad,
             totals,
+            dailySales,
           },
         },
       });

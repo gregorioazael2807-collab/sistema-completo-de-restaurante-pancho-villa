@@ -1,6 +1,6 @@
 import { db } from "@/lib/db";
 export async function kitchenSnapshot(admin: boolean) {
-  const [orders, settings, shift, ingredients, events, stations, staff] =
+  const [orders, settings, shift, ingredients, events, stations, staff, lastClosedShift] =
     await Promise.all([
       db.order.findMany({
         where: {
@@ -93,11 +93,17 @@ export async function kitchenSnapshot(admin: boolean) {
         where: { role: { in: ["ADMIN", "COCINA"] }, active: true },
         select: { id: true, firstName: true, lastName: true },
       }),
+      admin ? db.kitchenShift.findFirst({
+        where: { closedAt: { not: null } },
+        orderBy: { closedAt: "desc" },
+        select: { id: true, closedAt: true, summary: true },
+      }) : Promise.resolve(null),
     ]);
   return {
     orders,
     settings,
     shift,
+    lastClosedShift,
     stations,
     staff,
     events,

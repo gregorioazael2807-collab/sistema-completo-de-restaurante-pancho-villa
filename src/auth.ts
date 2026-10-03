@@ -1,6 +1,7 @@
 import NextAuth from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 import { authenticate } from "@/lib/security";
+import { authenticateKitchenOwner } from "@/lib/kitchen-owner-auth";
 import { db } from "@/lib/db";
 import type { Role } from "@prisma/client";
 
@@ -42,6 +43,17 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   session: { strategy: "jwt", maxAge: 7 * 24 * 60 * 60 },
   pages: { signIn: "/login" },
   providers: [
+    Credentials({
+      id: "kitchen-owner",
+      name: "Propietario de cocina",
+      credentials: {
+        email: { type: "email", label: "Correo del propietario" },
+        password: { type: "password", label: "Contraseña de cocina" },
+      },
+      async authorize(credentials) {
+        return authenticateKitchenOwner(credentials);
+      },
+    }),
     Credentials({
       credentials: {
         email: { type: "email", label: "Correo electrónico" },

@@ -1,10 +1,12 @@
 import { redirect } from "next/navigation";
+import { getActor } from "@/lib/access";
 import { requireCurrentUser } from "@/lib/current-user";
 import { KitchenBoard } from "@/components/kitchen-board";
 
 export default async function KitchenPage() {
+  const actor = await getActor();
+  if (!actor || actor.role !== "ADMIN") redirect("/cocina/login");
   const user = await requireCurrentUser();
-  if (user.role !== "ADMIN" && user.role !== "COCINA") redirect("/cuenta");
   return (
     <KitchenBoard
       actorId={user.id}

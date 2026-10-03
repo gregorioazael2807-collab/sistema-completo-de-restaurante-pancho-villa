@@ -64,6 +64,36 @@ enum AIEventKind {
   SAFETY_REFUSAL
 }
 
+// Identidades comerciales independientes de User (clientes y acceso heredado).
+// Estos modelos no habilitan acceso al panel heredado ni aíslan aún sus datos.
+model KitchenOwner {
+  id             String             @id @default(cuid())
+  email          String             @unique
+  passwordHash   String
+  name           String
+  active         Boolean            @default(true)
+  emailVerified  DateTime?
+  sessionVersion Int                @default(0)
+  restaurants    KitchenRestaurant[]
+  // Activación privada de una instalación dedicada; no se asigna en registro público.
+  kitchenUserId  String?            @unique
+  kitchenUser    User?              @relation(fields: [kitchenUserId], references: [id], onDelete: Restrict)
+  createdAt      DateTime           @default(now())
+  updatedAt      DateTime           @updatedAt
+}
+
+model KitchenRestaurant {
+  id        String       @id @default(cuid())
+  name      String
+  ownerId   String
+  owner     KitchenOwner @relation(fields: [ownerId], references: [id], onDelete: Restrict)
+  active    Boolean      @default(true)
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+
+  @@index([ownerId])
+}
+
 model User {
   id                  String               @id @default(cuid())
   email               String               @unique
@@ -80,6 +110,7 @@ model User {
   active              Boolean              @default(true)
   sessionVersion      Int                  @default(0)
   customer            Customer?
+  kitchenOwner        KitchenOwner?
   employee            Employee?
   addresses           Address[]
   orders              Order[]

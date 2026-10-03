@@ -4,7 +4,7 @@ import { kitchenSnapshot } from "@/lib/kitchen-snapshot";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 export async function GET(request: Request) {
-  const access = await requireRole(["ADMIN", "COCINA"]);
+  const access = await requireRole(["ADMIN"]);
   if ("response" in access) return access.response;
   const encoder = new TextEncoder();
   let timer: ReturnType<typeof setTimeout> | undefined;
@@ -31,7 +31,7 @@ export async function GET(request: Request) {
           if (
             !current ||
             !current.active ||
-            !["ADMIN", "COCINA"].includes(current.role) ||
+            current.role !== "ADMIN" ||
             current.sessionVersion !== access.actor.sessionVersion
           ) {
             controller.enqueue(encoder.encode("event: revoked\ndata: {}\n\n"));

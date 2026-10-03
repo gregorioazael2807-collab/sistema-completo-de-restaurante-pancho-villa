@@ -5,7 +5,7 @@ export async function PATCH(
   request: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
-  const access = await requireRole(["ADMIN", "COCINA"]);
+  const access = await requireRole(["ADMIN"]);
   if ("response" in access) return access.response;
   const parsed = itemRequest.safeParse(await request.json().catch(() => null));
   if (!parsed.success)

@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation";
 import { Flame, RefreshCw } from "lucide-react";
 import type { Locale } from "@/lib/locale";
 import { kitchenCopy } from "@/lib/kitchen-copy";
+import type { DailySales } from "@/lib/kitchen-daily-sales";
+import { KitchenSalesClose } from "@/components/kitchen-sales-close";
 import {
   KitchenMariachi,
   type MariachiState,
@@ -54,6 +56,7 @@ type Snapshot = {
     openedAt: string;
     pauses: { startedAt: string; endedAt: string | null }[];
   } | null;
+  lastClosedShift: { id: string; closedAt: string; summary: { dailySales?: DailySales } | null } | null;
   lowStock: {
     id: string;
     name: string;
@@ -84,6 +87,8 @@ export function KitchenBoard({
     [sound, setSound] = useState(false),
     [pulse, setPulse] = useState<MariachiState>("idle"),
     [assignees, setAssignees] = useState<Record<string, string>>({});
+  const [selectedTickets, setSelectedTickets] = useState<Record<string, string>>({});
+  const [showSalesClose, setShowSalesClose] = useState(false);
   const seen = useRef<Set<string>>(new Set()),
     initialized = useRef(false),
     audio = useRef<AudioContext | null>(null),
@@ -249,8 +254,10 @@ export function KitchenBoard({
         throw Error(e.error);
       }
       await load();
+      return true;
     } catch (e) {
       setError(`${t.error}: ${e instanceof Error ? e.message : ""}`);
+      return false;
     } finally {
       setBusy(false);
     }
@@ -307,7 +314,9 @@ export function KitchenBoard({
   }
   function shift(actionName: string) {
     if (actionName === "CLOSE" && !confirm(t.confirm)) return;
-    void action("/api/kitchen/shift", { action: actionName });
+    void action("/api/kitchen/shift", { action: actionName }).then((success) => {
+      if (success && actionName === "CLOSE") setShowSalesClose(true);
+    });
   }
   const groups = [
     { key: "new", test: (o: Ticket) => o.status === "NUEVO" },
@@ -325,7 +334,7 @@ export function KitchenBoard({
     },
   ] as const;
   return (
-    <main className="kitchen-page">
+    <main className="kitchen-page kitchen-board-page">
       <header className="kitchen-header flex flex-wrap gap-4 py-5">
         <div>
           <Link href="/" className="kitchen-brand">
@@ -402,6 +411,9 @@ export function KitchenBoard({
             </button>
           </>
         )}
+        {data?.lastClosedShift?.summary?.dailySales && (
+          <button type="button" onClick={() => setShowSalesClose(true)}>Ver último cierre de ventas</button>
+        )}
         {data?.canManage && (
           <>
             <Link href="/admin/inventario">{t.inventory}</Link>
@@ -440,19 +452,32 @@ export function KitchenBoard({
         </p>
       )}
       <div className="kitchen-columns">
-        {groups.map((group) => (
+        {groups.map((group) => {
+          const queue = orders.filter(group.test);
+          const selectedIndex = Math.max(0, queue.findIndex((order) => order.publicId === selectedTickets[group.key]));
+          const visible = queue.slice(selectedIndex, selectedIndex + 1);
+          const move = (direction: number) => {
+            const next = queue[selectedIndex + direction];
+            if (next) setSelectedTickets((current) => ({ ...current, [group.key]: next.publicId }));
+          };
+          return (
           <section
             className={`kitchen-column kitchen-${group.key}`}
             key={group.key}
           >
             <header>
               <h2>{t[group.key]}</h2>
-              <span>{orders.filter(group.test).length}</span>
+              <span>{queue.length}</span>
             </header>
-            {!orders.filter(group.test).length && (
+            <div className="kitchen-queue-controls">
+              <button type="button" disabled={selectedIndex === 0} onClick={() => move(-1)} aria-label={locale === "es" ? "Comanda anterior" : locale === "en" ? "Previous ticket" : "Vorheriger Bon"}>←</button>
+              <span aria-live="polite">{queue.length ? selectedIndex + 1 : 0} / {queue.length}</span>
+              <button type="button" disabled={selectedIndex >= queue.length - 1} onClick={() => move(1)} aria-label={locale === "es" ? "Comanda siguiente" : locale === "en" ? "Next ticket" : "Nächster Bon"}>→</button>
+            </div>
+            {!queue.length && (
               <p className="kitchen-empty">{t.empty}</p>
             )}
-            {orders.filter(group.test).map((order) => (
+            {visible.map((order) => (
               <article
                 className={`kitchen-order ${overdue.includes(order) ? "overdue" : ""}`}
                 key={order.publicId}
@@ -645,9 +670,13 @@ export function KitchenBoard({
               </article>
             ))}
           </section>
-        ))}
+          );
+        })}
       </div>
-      <p>{t.soundsOnly}</p>
+      <p className="kitchen-board-footer">{t.soundsOnly}</p>
+      {showSalesClose && data?.lastClosedShift?.summary?.dailySales && (
+        <KitchenSalesClose sales={data.lastClosedShift.summary.dailySales} locale={locale} onClose={() => setShowSalesClose(false)} />
+      )}
     </main>
   );
 }

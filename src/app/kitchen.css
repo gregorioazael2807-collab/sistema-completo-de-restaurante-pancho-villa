@@ -1,7 +1,17 @@
 .kitchen-page {
+  /* Tema interno: no modifica las variables de la web del cliente. */
+  --paper: #182231;
+  --ink: #edf2f7;
+  --muted: #aab8ca;
+  --line: #34445a;
+  --green: #5ee0b5;
+  --green2: #8ceccc;
+  --terracotta: #ffba73;
+  color-scheme: dark;
+  font-family: Arial, Helvetica, sans-serif;
   min-height: 100svh;
   padding: 0 28px 34px;
-  background: #eeeae1;
+  background: #0b111b;
   color: var(--ink);
 }
 .kitchen-header {
@@ -27,9 +37,9 @@
 }
 .kitchen-header h1 {
   margin: 10px 0 2px;
-  font:
-    500 29px Georgia,
-    serif;
+  font-size: clamp(26px, 3vw, 36px);
+  font-weight: 800;
+  letter-spacing: -0.03em;
 }
 .kitchen-header p {
   margin: 0;
@@ -445,3 +455,221 @@
     max-height: none;
   }
 }
+
+.kitchen-login-page {
+  display: grid;
+  place-items: center;
+  padding: 28px 16px;
+}
+.kitchen-login-card {
+  width: min(100%, 480px);
+  padding: clamp(24px, 5vw, 40px);
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  background: var(--paper);
+  box-shadow: 0 24px 80px #0005;
+}
+.kitchen-login-brand {
+  color: var(--green);
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+}
+.kitchen-login-card h1 { margin: 20px 0 12px; font-size: 32px; }
+.kitchen-login-card > p:not(.kitchen-login-brand),
+.kitchen-login-card > small { color: var(--muted); line-height: 1.6; }
+.kitchen-login-card > small { display: block; margin-top: 24px; }
+.kitchen-login-form { display: grid; gap: 12px; margin-top: 28px; }
+.kitchen-login-form label { font-weight: 700; }
+.kitchen-login-form input {
+  width: 100%;
+  min-height: 50px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #0b111b;
+  color: var(--ink);
+  font-size: 16px;
+}
+.kitchen-login-form button { margin-top: 12px; }
+
+.kitchen-sales-dialog {
+  width: min(760px, calc(100vw - 32px));
+  max-height: calc(100svh - 40px);
+  overflow: auto;
+  padding: 28px;
+  border: 1px solid #34445a;
+  border-radius: 16px;
+  background: #182231;
+  color: #edf2f7;
+  color-scheme: dark;
+}
+.kitchen-sales-dialog::backdrop { background: #000b; }
+.kitchen-sales-dialog table { width: 100%; border-collapse: collapse; }
+.kitchen-sales-dialog th,
+.kitchen-sales-dialog td { padding: 12px 6px; text-align: left; border-bottom: 1px solid #34445a; }
+.kitchen-sales-dialog dl { display: grid; grid-template-columns: 1fr auto; gap: 12px; }
+.kitchen-sales-dialog dd { margin: 0; text-align: right; }
+.kitchen-sales-dialog button {
+  min-height: 48px;
+  padding: 12px 20px;
+  border: 0;
+  border-radius: 8px;
+  background: #5ee0b5;
+  color: #08251c;
+  font-weight: 700;
+  cursor: pointer;
+}
+.kitchen-sales-dialog button:focus-visible { outline: 3px solid #73b5ff; outline-offset: 4px; }
+
+/* Cola visible: una comanda por estado, sin una lista vertical interminable. */
+.kitchen-queue-controls {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+.kitchen-queue-controls button {
+  min-width: 48px;
+  min-height: 44px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--paper);
+  color: var(--ink);
+  font-size: 22px;
+  cursor: pointer;
+}
+.kitchen-queue-controls span { color: var(--muted); font-size: 14px; }
+.kitchen-board-page .kitchen-column { min-height: 0; }
+.kitchen-board-footer { color: var(--muted); font-size: 12px; }
+@media (min-width: 1201px) and (min-height: 650px) {
+  .kitchen-board-page {
+    height: 100svh;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    padding-bottom: 8px;
+  }
+  .kitchen-board-page > :not(.kitchen-columns) { flex-shrink: 0; }
+  .kitchen-board-page .kitchen-header { min-height: 88px; padding-block: 8px; }
+  .kitchen-board-page .kitchen-mariachi,
+  .kitchen-board-page .kitchen-mariachi canvas { width: 76px; height: 76px; }
+  .kitchen-board-page .kitchen-toolbar { padding-block: 8px; }
+  .kitchen-board-page .kitchen-counts span { padding: 6px 14px; }
+  .kitchen-board-page > .kitchen-alert {
+    margin-block: 4px;
+    max-height: 60px;
+    overflow: auto;
+    padding: 8px;
+  }
+  .kitchen-board-page .kitchen-columns {
+    flex: 1;
+    min-height: 0;
+    width: 100%;
+    margin-top: 12px;
+    align-items: stretch;
+  }
+  .kitchen-board-page .kitchen-column {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    overflow: hidden;
+  }
+  .kitchen-board-page .kitchen-column > header,
+  .kitchen-board-page .kitchen-queue-controls { flex-shrink: 0; }
+  .kitchen-board-page .kitchen-order {
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-gutter: stable;
+    margin-bottom: 0;
+  }
+  .kitchen-board-page .kitchen-board-footer { margin-block: 6px 0; }
+}
+
+/* Panel profesional: superficies y estados exclusivos de cocina. */
+.kitchen-page .kitchen-header {
+  border-color: var(--line);
+}
+.kitchen-page .kitchen-refresh,
+.kitchen-page .kitchen-column > header span {
+  background: var(--paper);
+  border-color: var(--line);
+  color: var(--ink);
+}
+.kitchen-page .kitchen-column {
+  background: #111a27;
+  border-color: var(--line);
+  border-top: 4px solid var(--column-accent, #92a4bc);
+}
+.kitchen-page .kitchen-new { --column-accent: #73b5ff; }
+.kitchen-page .kitchen-en_preparacion { --column-accent: #ffca75; }
+.kitchen-page .kitchen-listo { --column-accent: #5ee0b5; }
+.kitchen-page .kitchen-en_camino { --column-accent: #bb9cff; }
+.kitchen-page .kitchen-column > header h2 {
+  color: var(--column-accent, var(--ink));
+}
+.kitchen-page .kitchen-order {
+  background: var(--paper);
+  border-color: var(--line);
+  box-shadow: 0 8px 24px #0003;
+}
+.kitchen-page .kitchen-ticket-head > strong {
+  color: var(--ink);
+  font-size: 20px;
+}
+.kitchen-page .kitchen-time,
+.kitchen-page .kitchen-order li small,
+.kitchen-page .kitchen-empty {
+  color: var(--muted);
+}
+.kitchen-page .kitchen-time { font-size: 14px; }
+.kitchen-page .kitchen-type {
+  background: #25354a;
+  color: #d4e5fa;
+  font-size: 12px;
+}
+.kitchen-page .kitchen-order li { border-color: var(--line); }
+.kitchen-page .kitchen-order li .kitchen-instruction,
+.kitchen-page .kitchen-wait-alert,
+.kitchen-page .overdue .kitchen-time {
+  color: #ffca75;
+}
+.kitchen-page .kitchen-note {
+  background: #372c1c;
+  color: #ffe0a6;
+  border-left: 3px solid #ffca75;
+}
+.kitchen-page .kitchen-alert {
+  background: #3c222b;
+  color: #ffced3;
+  border: 1px solid #91505c;
+}
+.kitchen-page .kitchen-action {
+  background: var(--green);
+  color: #08251c;
+}
+.kitchen-page .kitchen-action:hover { background: var(--green2); }
+.kitchen-page .kitchen-action-secondary {
+  background: #3c222b;
+  color: #ffced3;
+}
+.kitchen-page .kitchen-action-secondary:hover { background: #542f3b; }
+.kitchen-page .kitchen-order.overdue {
+  border-color: #ffca75;
+  box-shadow: inset 4px 0 #ffca75, 0 8px 24px #0003;
+}
+.kitchen-page button:focus-visible,
+.kitchen-page a:focus-visible,
+.kitchen-page input:focus-visible,
+.kitchen-page summary:focus-visible {
+  outline: 3px solid #73b5ff;
+  outline-offset: 4px;
+}
+.kitchen-page button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+

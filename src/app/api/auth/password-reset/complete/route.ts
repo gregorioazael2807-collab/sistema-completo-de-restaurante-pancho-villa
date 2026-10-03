@@ -17,7 +17,14 @@ export async function POST(request: Request) {
       if (!token) return false;
       const redeemed = await tx.passwordResetToken.updateMany({ where: { id: token.id, usedAt: null, expiresAt: { gt: new Date() } }, data: { usedAt: new Date() } });
       if (redeemed.count !== 1) return false;
-      await tx.user.update({ where: { id: token.userId }, data: { passwordHash, sessionVersion: { increment: 1 } } });
+      const owner = await tx.kitchenOwner.findUnique({ where: { kitchenUserId: token.userId }, select: { id: true, active: true } });
+      if (owner) {
+        if (!owner.active) throw new Error("Inactive kitchen owner");
+        await tx.kitchenOwner.update({ where: { id: owner.id }, data: { passwordHash, sessionVersion: { increment: 1 } } });
+        await tx.user.update({ where: { id: token.userId }, data: { sessionVersion: { increment: 1 } } });
+      } else {
+        await tx.user.update({ where: { id: token.userId }, data: { passwordHash, sessionVersion: { increment: 1 } } });
+      }
       await tx.passwordResetToken.deleteMany({ where: { userId: token.userId, id: { not: token.id }, usedAt: null } });
       return true;
     });
