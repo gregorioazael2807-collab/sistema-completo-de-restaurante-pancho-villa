@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, type FormEvent } from "react";
-import { signIn, signOut } from "next-auth/react";
+import { loginKitchen, logoutKitchen } from "@/app/cocina/auth-actions";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 
@@ -16,12 +16,11 @@ export function KitchenLogin({ unauthorized = false }: { unauthorized?: boolean 
     setPending(true);
     setError("");
     try {
-      const result = await signIn("kitchen-owner", {
-        email: String(form.get("email") ?? "").trim().toLowerCase(),
-        password: String(form.get("password") ?? ""),
-        redirect: false,
-      });
-      if (!result || result.error) {
+      const result = await loginKitchen(
+        String(form.get("email") ?? "").trim().toLowerCase(),
+        String(form.get("password") ?? ""),
+      );
+      if (!result.ok) {
         setError("No se pudo iniciar sesión. Comprueba tus datos y que tu restaurante haya sido activado.");
       } else {
         router.replace("/cocina");
@@ -43,7 +42,7 @@ export function KitchenLogin({ unauthorized = false }: { unauthorized?: boolean 
         {unauthorized ? (
           <div>
             <p className="kitchen-alert" role="alert">Esta cuenta no tiene permiso de administrador.</p>
-            <button className="kitchen-action" onClick={() => signOut({ callbackUrl: "/cocina/login" })}>Usar otra cuenta</button>
+            <button className="kitchen-action" onClick={async () => { await logoutKitchen(); router.replace("/cocina/login"); router.refresh(); }}>Usar otra cuenta</button>
           </div>
         ) : (
           <form onSubmit={submit} className="kitchen-login-form">

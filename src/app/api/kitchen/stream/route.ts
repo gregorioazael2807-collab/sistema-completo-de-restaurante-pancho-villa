@@ -26,13 +26,18 @@ export async function GET(request: Request) {
           // Revalidate the real account on every heartbeat; revoked roles cannot keep a stream.
           const current = await db.user.findUnique({
             where: { id: access.actor.id },
-            select: { active: true, role: true, sessionVersion: true },
+            select: {
+              active: true, role: true, sessionVersion: true,
+              kitchenOwner: { select: { active: true, restaurants: { select: { active: true } } } },
+            },
           });
           if (
             !current ||
             !current.active ||
             current.role !== "ADMIN" ||
-            current.sessionVersion !== access.actor.sessionVersion
+            current.sessionVersion !== access.actor.sessionVersion ||
+            !current.kitchenOwner?.active || current.kitchenOwner.restaurants.length !== 1 ||
+            !current.kitchenOwner.restaurants[0].active
           ) {
             controller.enqueue(encoder.encode("event: revoked\ndata: {}\n\n"));
             stop();

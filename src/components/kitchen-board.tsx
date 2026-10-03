@@ -7,6 +7,7 @@ import type { Locale } from "@/lib/locale";
 import { kitchenCopy } from "@/lib/kitchen-copy";
 import type { DailySales } from "@/lib/kitchen-daily-sales";
 import { KitchenSalesClose } from "@/components/kitchen-sales-close";
+import { logoutKitchen } from "@/app/cocina/auth-actions";
 import {
   KitchenMariachi,
   type MariachiState,
@@ -158,7 +159,7 @@ export function KitchenBoard({
       if (r.status === 401 || r.status === 403) {
         setData(null);
         setFailed(true);
-        router.replace(r.status === 403 ? "/cuenta" : "/login?expired=1");
+        router.replace("/cocina/login?expired=1");
         return;
       }
       if (!r.ok) throw Error();
@@ -195,7 +196,7 @@ export function KitchenBoard({
         setData(null);
         setFailed(true);
         eventSource?.close();
-        router.replace("/cuenta");
+        router.replace("/cocina/login?expired=1");
       });
       eventSource.onerror = () => {
         setTransport("poll");
@@ -373,6 +374,11 @@ export function KitchenBoard({
         </button>
       </header>
       <div className="kitchen-toolbar flex flex-wrap gap-3 py-4">
+        <button type="button" disabled={busy} onClick={async () => {
+          await logoutKitchen();
+          router.replace("/cocina/login");
+          router.refresh();
+        }}>Salir de cocina</button>
         <label>
           <input
             type="checkbox"

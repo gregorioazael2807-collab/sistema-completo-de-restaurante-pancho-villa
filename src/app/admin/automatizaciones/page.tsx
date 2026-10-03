@@ -4,7 +4,7 @@ import { db } from "@/lib/db";
 import { AutomationDashboard } from "@/components/automation-dashboard";
 
 export default async function AutomationPage() {
-  const user = await requireCurrentUser();
+  const user = await requireCurrentUser("kitchen");
   if (user.role !== "ADMIN") redirect("/cuenta");
   const [pending, sent, failed, processing] = await Promise.all([
     db.automationJob.count({ where: { status: "PENDING" } }),

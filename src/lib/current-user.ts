@@ -1,13 +1,15 @@
 import { redirect } from "next/navigation";
-import { auth } from "@/auth";
+import { getActor } from "@/lib/access";
+import type { AuthScope } from "@/lib/auth-config";
 import { db } from "@/lib/db";
 
-export async function requireCurrentUser() {
-  const session = await auth();
-  if (!session?.user?.id) redirect("/login");
+export async function requireCurrentUser(scope: AuthScope = "customer") {
+  const actor = await getActor(scope);
+  const login = scope === "kitchen" ? "/cocina/login" : "/login";
+  if (!actor) redirect(login);
 
   const user = await db.user.findUnique({
-    where: { id: session.user.id },
+    where: { id: actor.id },
     select: {
       id: true,
       email: true,
@@ -25,9 +27,9 @@ export async function requireCurrentUser() {
   if (
     !user ||
     !user.active ||
-    user.sessionVersion !== session.user.sessionVersion
+    user.sessionVersion !== actor.sessionVersion
   ) {
-    redirect("/login?expired=1");
+    redirect(`${login}?expired=1`);
   }
 
   return user;
