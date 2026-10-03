@@ -99,11 +99,15 @@ export async function kitchenSnapshot(admin: boolean) {
         select: { id: true, closedAt: true, summary: true },
       }) : Promise.resolve(null),
     ]);
+  const closeEmail = admin && lastClosedShift ? await db.automationJob.findUnique({
+    where: { dedupeKey: `shift-summary:${lastClosedShift.id}` },
+    select: { status: true, lastError: true },
+  }) : null;
   return {
     orders,
     settings,
     shift,
-    lastClosedShift,
+    lastClosedShift: lastClosedShift ? { ...lastClosedShift, email: closeEmail } : null,
     stations,
     staff,
     events,

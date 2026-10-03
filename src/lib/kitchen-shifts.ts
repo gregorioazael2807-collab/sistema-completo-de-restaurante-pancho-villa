@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { serializable } from "@/lib/kitchen-transaction";
 import { dailySalesWindow, summarizeDailySales } from "@/lib/kitchen-daily-sales";
+import { summarizeInventoryClose } from "@/lib/kitchen-close-report";
 export const shiftRequest = z.discriminatedUnion("action", [
   z.object({
     action: z.literal("OPEN"),
@@ -88,6 +89,15 @@ export async function shiftAction(
         include: { items: { include: { modifiers: true } } },
       });
       const dailySales = summarizeDailySales(soldToday, now, settings.timezone);
+      const [ingredients, movements] = await Promise.all([
+        tx.ingredient.findMany({ orderBy: { name: "asc" } }),
+        tx.inventoryMovement.findMany({
+          where: { kind: "PURCHASE", createdAt: { gte: start, lte: now } },
+          include: { ingredient: { select: { name: true, unit: true } } },
+          orderBy: { createdAt: "asc" },
+        }),
+      ]);
+      const inventory = summarizeInventoryClose(ingredients, movements, soldToday, settings.currency);
       const completed = orders.filter((o) => o.readyAt);
       const times = completed
         .filter((o) => o.preparationStartedAt)
@@ -115,7 +125,7 @@ export async function shiftAction(
             stationLoad[i.stationName ?? "unknown"] =
               (stationLoad[i.stationName ?? "unknown"] ?? 0) +
               (i.finishedAt.getTime() - i.startedAt.getTime()) / 60000;
-      await tx.kitchenShift.update({
+      const closedShift = await tx.kitchenShift.update({
         where: { id: shift.id },
         data: {
           activeKey: null,
@@ -142,9 +152,22 @@ export async function shiftAction(
             stationLoad,
             totals,
             dailySales,
+            inventory,
           },
         },
       });
+      const owner = await tx.kitchenOwner.findUnique({ where: { kitchenUserId: actorId }, select: { email: true, active: true } });
+      const recipient = owner?.active ? owner.email : process.env.ADMIN_REPORT_EMAIL;
+      if (recipient) {
+        await tx.automationJob.createMany({
+          data: [{
+            dedupeKey: `shift-summary:${shift.id}`,
+            kind: "KITCHEN_SUMMARY",
+            payload: { recipient, locale: "es", name: settings.name, summary: closedShift.summary },
+          }],
+          skipDuplicates: true,
+        });
+      }
       await tx.restaurantSettings.update({
         where: { id: settings.id },
         data: { acceptingOrders: false },

@@ -4,12 +4,13 @@ import { useEffect, useRef } from "react";
 import type { DailySales } from "@/lib/kitchen-daily-sales";
 import type { Locale } from "@/lib/locale";
 
-export function KitchenSalesClose({ sales, locale, onClose }: { sales: DailySales; locale: Locale; onClose: () => void }) {
+export function KitchenSalesClose({ sales, locale, email, onClose }: { sales: DailySales; locale: Locale; email?: { status: string; lastError: string | null } | null; onClose: () => void }) {
   const dialog = useRef<HTMLDialogElement>(null);
   useEffect(() => { dialog.current?.showModal(); }, []);
   const money = (cents: number, currency: string) => new Intl.NumberFormat(locale, { style: "currency", currency }).format(cents / 100);
   return <dialog ref={dialog} className="kitchen-sales-dialog" onClose={onClose}>
     <h2>Cierre de ventas · {sales.date}</h2>
+    <p role="status">{email?.status === "COMPLETED" ? "Informe de ventas e inventario enviado al proveedor de correo." : email?.status === "FAILED" ? "No se pudo enviar el informe. Revisa Automatizaciones para reintentarlo." : email?.lastError ? "El envío del informe falló y está pendiente de reintento." : email ? "Informe de ventas e inventario pendiente de envío." : "Este cierre no tiene correo programado."}</p>
     <p>Comandas entregadas hasta {new Date(sales.through).toLocaleTimeString(locale, { timeZone: sales.timezone })} · {sales.timezone}</p>
     {!sales.currencies.length && <p>No hay comandas entregadas en este día.</p>}
     {sales.currencies.map((group) => <section key={group.currency}>

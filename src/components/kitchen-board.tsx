@@ -57,7 +57,7 @@ type Snapshot = {
     openedAt: string;
     pauses: { startedAt: string; endedAt: string | null }[];
   } | null;
-  lastClosedShift: { id: string; closedAt: string; summary: { dailySales?: DailySales } | null } | null;
+  lastClosedShift: { id: string; closedAt: string; summary: { dailySales?: DailySales } | null; email: { status: string; lastError: string | null } | null } | null;
   lowStock: {
     id: string;
     name: string;
@@ -681,7 +681,7 @@ export function KitchenBoard({
       </div>
       <p className="kitchen-board-footer">{t.soundsOnly}</p>
       {showSalesClose && data?.lastClosedShift?.summary?.dailySales && (
-        <KitchenSalesClose sales={data.lastClosedShift.summary.dailySales} locale={locale} onClose={() => setShowSalesClose(false)} />
+        <KitchenSalesClose sales={data.lastClosedShift.summary.dailySales} locale={locale} email={data.lastClosedShift.email} onClose={() => setShowSalesClose(false)} />
       )}
     </main>
   );

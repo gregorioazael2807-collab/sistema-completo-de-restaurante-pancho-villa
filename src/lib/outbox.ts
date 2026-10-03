@@ -1,5 +1,6 @@
 import { Resend } from "resend";
 import { db } from "@/lib/db";
+import { kitchenCloseEmail, type KitchenCloseSummary } from "@/lib/kitchen-close-report";
 
 const statusNames: Record<string, Record<string, string>> = {
   es: {
@@ -97,10 +98,11 @@ function emailContent(
   };
 }
 
-export async function processOutboxBatch(limit = 20) {
+export async function processOutboxBatch(limit = 20, dedupeKey?: string) {
   await db.automationJob.updateMany({
     where: {
       status: "PROCESSING",
+      ...(dedupeKey ? { dedupeKey } : {}),
       lockedAt: { lt: new Date(Date.now() - 5 * 60_000) },
     },
     data: { status: "PENDING", lockedAt: null },
@@ -108,6 +110,7 @@ export async function processOutboxBatch(limit = 20) {
   const jobs = await db.automationJob.findMany({
     where: {
       status: { in: ["PENDING", "FAILED"] },
+      ...(dedupeKey ? { dedupeKey } : {}),
       attempts: { lt: 5 },
       runAt: { lte: new Date() },
     },
@@ -141,11 +144,8 @@ export async function processOutboxBatch(limit = 20) {
       notifyEmail?: string;
       notificationDedupeKey?: string;
       resetUrl?: string;
-      summary?: {
-        prepared: number;
-        effectiveMinutes: number;
-        averageMinutes: number | null;
-      };
+      name?: string;
+      summary?: KitchenCloseSummary;
     };
     const notificationKey = payload.notificationDedupeKey;
     try {
@@ -168,10 +168,7 @@ export async function processOutboxBatch(limit = 20) {
         throw new Error("INVALID_EMAIL_JOB");
       const email =
         candidate.kind === "KITCHEN_SUMMARY" && payload.summary
-          ? {
-              subject: "Cierre de cocina · Pancho Villa",
-              html: `<h1>Pancho Villa</h1><p>Preparados: ${Number(payload.summary.prepared)}</p><p>Minutos efectivos: ${Number(payload.summary.effectiveMinutes).toFixed(1)}</p><p>Preparación media: ${payload.summary.averageMinutes === null ? "Pendiente" : Number(payload.summary.averageMinutes).toFixed(1)}</p>`,
-            }
+          ? kitchenCloseEmail(payload.summary, payload.name)
           : emailContent(
               payload.locale ?? "es",
               payload.publicId,
