@@ -1,5 +1,9 @@
 # Sistema completo de restaurante Pancho Villa
 
+Muestra de portafolio: plataforma de pedidos, cocina, inventario y administración de restaurante. Esta publicación comparte el código; no despliega servicios ni incluye clientes, pedidos reales o credenciales.
+
+El historial se ha depurado para retirar rutas personales. La configuración se documenta en `config.example.txt`; crea tu `.env` local con valores propios. Los correos de ejemplo son ficticios.
+
 > Integración local de la web original con cocina: consulta [docs/integracion-original.md](docs/integracion-original.md). Web y comandas comparten los pedidos originales en el puerto 3004, con sesiones independientes. No se ha publicado todavía esta integración.
 
 Aplicación web de pedidos para un restaurante mexicano, creada como proyecto independiente; BookFlow no se modifica. Usa Next.js, React, TypeScript, Tailwind CSS, Auth.js, Zod, Prisma y PostgreSQL.

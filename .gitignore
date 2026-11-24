@@ -12,3 +12,17 @@ test-results
 *.log
 
 .data/catalog-photos/
+
+# Datos privados y artefactos locales
+.env
+.env.*
+.local/
+.data/
+*.dump
+*.sqlite
+*.sqlite3
+*.db
+*.pem
+*.key
+*.log
+.DS_Store
